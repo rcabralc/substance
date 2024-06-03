@@ -1,0 +1,37 @@
+<%
+    require_relative "../#{name.downcase}"
+    scheme = Substance.const_get(name)
+    palette = scheme.public_send(variant)
+    description = variant == 'dark' ? "#{name}Dark" : "#{name}Light"
+	hex = -> color { color.srgb.hex.tr('#', '') }
+%>[colors]
+background=<%= hex[palette.surface] %>
+foreground=<%= hex[palette.on_surface] %>
+flash=<%= hex[palette.term3_container] %>
+
+regular0=<%= hex[palette.term0_fixed] %>
+regular1=<%= hex[palette.term1_fixed] %>
+regular2=<%= hex[palette.term2_fixed] %>
+regular3=<%= hex[palette.term3_fixed] %>
+regular4=<%= hex[palette.term4_fixed] %>
+regular5=<%= hex[palette.term5_fixed] %>
+regular6=<%= hex[palette.term6_fixed] %>
+regular7=<%= hex[palette.term7_fixed] %>
+
+bright0=<%= hex[palette.term0] %>
+bright1=<%= hex[palette.term1] %>
+bright2=<%= hex[palette.term2] %>
+bright3=<%= hex[palette.term3] %>
+bright4=<%= hex[palette.term4] %>
+bright5=<%= hex[palette.term5] %>
+bright6=<%= hex[palette.term6] %>
+bright7=<%= hex[palette.term7] %>
+
+dim0=<%= hex[palette.term0_container] %>
+dim1=<%= hex[palette.term1_container] %>
+dim2=<%= hex[palette.term2_container] %>
+dim3=<%= hex[palette.term3_container] %>
+dim4=<%= hex[palette.term4_container] %>
+dim5=<%= hex[palette.term5_container] %>
+dim6=<%= hex[palette.term6_container] %>
+dim7=<%= hex[palette.term7_container] %>

@@ -1,0 +1,57 @@
+<%
+    require_relative "../#{name.downcase}"
+    scheme = Substance.const_get(name)
+    palette = scheme.public_send(variant)
+    description = variant == 'dark' ? "#{name}Dark" : "#{name}Light"
+%>[colors]
+
+[colors.primary]
+background = "<%= palette.surface.srgb.hex %>"
+foreground = "<%= palette.on_surface.srgb.hex %>"
+dim_foreground = "<%= palette.on_surface_variant.srgb.hex %>"
+bright_foreground = "<%= palette.on_surface.srgb.hex %>"
+
+[colors.search]
+matches = { foreground = "<%= palette.surface.srgb.hex %>", background = "<%= palette.term1_fixed.srgb.hex %>" }
+focused_match = { foreground = "<%= palette.surface.srgb.hex %>", background = "<%= palette.term3_fixed.srgb.hex %>" }
+
+[colors.hints]
+start = { foreground = "<%= palette.surface.srgb.hex %>", background = "<%= palette.term3_fixed.srgb.hex %>" }
+end = { foreground = "<%= palette.surface.srgb.hex %>", background = "<%= palette.term1_fixed.srgb.hex %>" }
+
+[colors.footer_bar]
+foreground = "<%= palette.surface.srgb.hex %>"
+background = "<%= palette.on_surface.srgb.hex %>"
+
+[colors.normal]
+black = "<%= palette.term0_fixed.srgb.hex %>"
+red = "<%= palette.term1_fixed.srgb.hex %>"
+green = "<%= palette.term2_fixed.srgb.hex %>"
+yellow = "<%= palette.term3_fixed.srgb.hex %>"
+blue = "<%= palette.term4_fixed.srgb.hex %>"
+magenta = "<%= palette.term5_fixed.srgb.hex %>"
+cyan = "<%= palette.term6_fixed.srgb.hex %>"
+white = "<%= palette.term7_fixed.srgb.hex %>"
+
+[colors.dim]
+black = "<%= palette.term0_container.srgb.hex %>"
+red = "<%= palette.term1_container.srgb.hex %>"
+green = "<%= palette.term2_container.srgb.hex %>"
+yellow = "<%= palette.term3_container.srgb.hex %>"
+blue = "<%= palette.term4_container.srgb.hex %>"
+magenta = "<%= palette.term5_container.srgb.hex %>"
+cyan = "<%= palette.term6_container.srgb.hex %>"
+white = "<%= palette.term7_container.srgb.hex %>"
+
+[colors.bright]
+black = "<%= palette.term0.srgb.hex %>"
+red = "<%= palette.term1.srgb.hex %>"
+green = "<%= palette.term2.srgb.hex %>"
+yellow = "<%= palette.term3.srgb.hex %>"
+blue = "<%= palette.term4.srgb.hex %>"
+magenta = "<%= palette.term5.srgb.hex %>"
+cyan = "<%= palette.term6.srgb.hex %>"
+white = "<%= palette.term7.srgb.hex %>"
+
+[bell]
+color = "<%= palette.on_surface.srgb.hex %>"

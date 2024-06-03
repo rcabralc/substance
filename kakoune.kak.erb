@@ -1,0 +1,80 @@
+<%
+  require_relative "../#{name.downcase}"
+  scheme = Substance.const_get(name)
+  palette = scheme.public_send(variant)
+  color = -> (name, alpha = 1) do
+   a = format('%x', alpha * 255.0) if alpha != 1
+   "rgb#{a && 'a'}:#{palette.public_send(name).srgb.hex.tr('#', '')}#{a}"
+  end
+%># Kakoune <%= name %> color scheme
+
+# For code
+face global value <%= color[:tier3] %>
+face global type <%= color[:tier2] %>
+face global variable <%= color[:tier2] %>
+face global module <%= color[:tier2] %>
+face global function <%= color[:tier4] %>
+face global string <%= color[:tier2] %>
+face global keyword <%= color[:tier1] %>+b
+face global operator <%= color[:tier1] %>
+face global attribute <%= color[:tier4] %>
+face global comment <%= color[:on_surface_variant] %>+i
+face global documentation comment
+face global meta <%= color[:tier5] %>
+face global builtin <%= color[:tier1] %>+i
+
+# For markup
+face global title <%= color[:tier1] %>+b
+face global header <%= color[:tier1] %>
+face global mono <%= color[:tier2] %>
+face global block <%= color[:tier2] %>
+face global link <%= color[:link] %>+u
+face global bullet <%= color[:tier3] %>
+face global list <%= color[:tier3] %>
+
+# built-in faces
+face global Default <%= color[:on_surface] %>,<%= color[:surface] %>
+face global PrimarySelection default,<%= color[:selection_container, 0.8] %>
+face global SecondarySelection default,<%= color[:tier2_container, 0.8] %>
+face global PrimaryCursor +r
+face global SecondaryCursor <%= color[:surface] %>,<%= color[:on_surface_variant] %>
+face global PrimaryCursorEol default,<%= color[:selection] %>
+face global SecondaryCursorEol default,<%= color[:tier2] %>
+face global MenuForeground <%= color[:on_selection_container] %>,<%= color[:selection_container] %>
+face global MenuBackground <%= color[:on_surface] %>,<%= color[:surface_container_highest] %>
+face global MenuInfo <%= color[:on_surface_variant] %>
+face global Information <%= color[:on_surface] %>,<%= color[:surface_container_highest] %>
+face global Error <%= color[:on_error_container] %>,<%= color[:error_container] %>
+face global DiagnosticError <%= color[:error] %>+b
+face global DiagnosticHint comment
+face global DiagnosticInfo comment
+face global DiagnosticWarning <%= color[:warning] %>
+face global StatusLine <%= color[:on_surface] %>,<%= color[:surface_container_low] %>
+face global StatusLineMode <%= color[:tier3] %>
+face global StatusLineInfo <%= color[:tier2] %>
+face global StatusLineValue <%= color[:tier1] %>
+face global StatusCursor +r
+face global Prompt <%= color[:tier3] %>
+face global BufferPadding <%= color[:surface_container_low] %>
+
+# built-in highlighter faces
+face global LineNumbers <%= color[:outline] %>,<%= color[:surface_container_low] %>
+face global LineNumberCursor <%= color[:selection_fixed] %>@LineNumbers
+face global LineNumbersWrapped <%= color[:surface_container_low] %>,<%= color[:surface_container_low] %>+i
+face global MatchingChar default,<%= color[:tier4_container] %>+b
+face global Whitespace <%= color[:outline] %>+f
+face global WrapMarker <%= color[:outline] %>+f
+
+# Containers
+face global DefaultTier1Container default,<%= color[:tier1_container] %>
+face global DefaultTier2Container default,<%= color[:tier2_container] %>
+face global DefaultTier3Container default,<%= color[:tier3_container] %>
+face global DefaultTier4Container default,<%= color[:tier4_container] %>
+face global DefaultTier5Container default,<%= color[:tier5_container] %>
+face global DefaultTier6Container default,<%= color[:tier6_container] %>
+face global DefaultOnSurfaceContainerLowest default,<%= color[:surface_container_lowest] %>
+face global DefaultOnSurface default,<%= color[:surface] %>
+face global DefaultOnSurfaceContainerLow default,<%= color[:surface_container_low] %>
+face global DefaultOnSurfaceContainer default,<%= color[:surface_container] %>
+face global DefaultOnSurfaceContainerHigh default,<%= color[:surface_container_high] %>
+face global DefaultOnSurfaceContainerHighest default,<%= color[:surface_container_highest] %>
