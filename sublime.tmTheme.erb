@@ -1,0 +1,371 @@
+<%
+	require_relative "../#{name.downcase}"
+	scheme = Substance.const_get(name)
+	palette = scheme.public_send(variant)
+%><?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+	<dict>
+		<key>name</key>
+		<string><%= name %> <%= variant %></string>
+		<key>settings</key>
+		<array>
+			<dict>
+				<key>settings</key>
+				<dict>
+					<key>background</key>
+					<string><%= palette.surface.srgb.hex %></string>
+					<key>caret</key>
+					<string><%= palette.on_surface.srgb.hex %></string>
+					<key>foreground</key>
+					<string><%= palette.on_surface.srgb.hex %></string>
+					<key>invisibles</key>
+					<string><%= palette.outline.srgb.hex %></string>
+					<key>lineHighlight</key>
+					<string><%= palette.surface_container.srgb.hex %></string>
+					<key>selection</key>
+					<string><%= palette.selection.srgb.hex %></string>
+					<key>selectionBorder</key>
+					<string><%= palette.selection.srgb.hex %></string>
+					<key>inactiveSelection</key>
+					<string><%= palette.surface_container_highest.srgb.hex %></string>
+					<key>findHighlight</key>
+					<string><%= palette.warning_container.srgb.hex %></string>
+					<key>findHighlightForeground</key>
+					<string><%= palette.warning.srgb.hex %></string>
+					<key>gutterForeground</key>
+					<string><%= palette.outline.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>Comments</string>
+				<key>scope</key>
+				<string>comment</string>
+				<key>settings</key>
+				<dict>
+					<key>fontStyle</key>
+					<string>italic</string>
+					<key>foreground</key>
+					<string><%= palette.on_surface_variant.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>Operators</string>
+				<key>scope</key>
+				<string>keyword.operator, support.constant</string>
+				<key>settings</key>
+				<dict>
+					<key>fontStyle</key>
+					<string></string>
+					<key>foreground</key>
+					<string><%= palette.tier1.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>Operators</string>
+				<key>scope</key>
+				<string>constant.language</string>
+				<key>settings</key>
+				<dict>
+					<key>fontStyle</key>
+					<string></string>
+					<key>foreground</key>
+					<string><%= palette.tier1.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>Keywords</string>
+				<key>scope</key>
+				<string>keyword, storage</string>
+				<key>settings</key>
+				<dict>
+					<key>fontStyle</key>
+					<string>bold</string>
+					<key>foreground</key>
+					<string><%= palette.tier1.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>Types</string>
+				<key>scope</key>
+				<string>storage.type</string>
+				<key>settings</key>
+				<dict>
+					<key>fontStyle</key>
+					<string></string>
+					<key>foreground</key>
+					<string><%= palette.tier2.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>Types</string>
+				<key>scope</key>
+				<string>support.type</string>
+				<key>settings</key>
+				<dict>
+					<key>fontStyle</key>
+					<string></string>
+					<key>foreground</key>
+					<string><%= palette.tier2.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>scope</key>
+				<string>variable</string>
+				<key>settings</key>
+				<dict>
+					<key>foreground</key>
+					<string><%= palette.tier2.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>scope</key>
+				<string>variable.language</string>
+				<key>settings</key>
+				<dict>
+					<key>foreground</key>
+					<string><%= palette.tier2.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>scope</key>
+				<string>variable.parameter.function</string>
+				<key>settings</key>
+				<dict>
+					<key>foreground</key>
+					<string><%= palette.on_surface.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>Functions</string>
+				<key>scope</key>
+				<string>entity.name.function, entity</string>
+				<key>settings</key>
+				<dict>
+					<key>fontStyle</key>
+					<string></string>
+					<key>foreground</key>
+					<string><%= palette.tier4.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>Functions</string>
+				<key>scope</key>
+				<string>support.function</string>
+				<key>settings</key>
+				<dict>
+					<key>fontStyle</key>
+					<string></string>
+					<key>foreground</key>
+					<string><%= palette.tier4.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>Classes</string>
+				<key>scope</key>
+				<string>entity.name.type, entity.other.inherited-class</string>
+				<key>settings</key>
+				<dict>
+					<key>fontStyle</key>
+					<string></string>
+					<key>foreground</key>
+					<string><%= palette.tier1.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>Classes</string>
+				<key>scope</key>
+				<string>support.class</string>
+				<key>settings</key>
+				<dict>
+					<key>fontStyle</key>
+					<string></string>
+					<key>foreground</key>
+					<string><%= palette.tier1.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>Exceptions</string>
+				<key>scope</key>
+				<string>entity.name.exception</string>
+				<key>settings</key>
+				<dict>
+					<key>foreground</key>
+					<string><%= palette.tier1.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>Sections</string>
+				<key>scope</key>
+				<string>entity.name.section</string>
+				<key>settings</key>
+				<dict>
+					<key>fontStyle</key>
+					<string></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>Numbers</string>
+				<key>scope</key>
+				<string>constant.numeric, constant</string>
+				<key>settings</key>
+				<dict>
+					<key>fontStyle</key>
+					<string></string>
+					<key>foreground</key>
+					<string><%= palette.tier3.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>Strings</string>
+				<key>scope</key>
+				<string>constant.character, string, string punctuation</string>
+				<key>settings</key>
+				<dict>
+					<key>fontStyle</key>
+					<string></string>
+					<key>foreground</key>
+					<string><%= palette.tier2.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>Strings: Regular Expressions</string>
+				<key>scope</key>
+				<string>string.regexp, string.regexp constant.character, string.regexp punctuation</string>
+				<key>settings</key>
+				<dict>
+					<key>fontStyle</key>
+					<string></string>
+					<key>foreground</key>
+					<string><%= palette.tier3.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>Strings: Symbols</string>
+				<key>scope</key>
+				<string>constant.other.symbol</string>
+				<key>settings</key>
+				<dict>
+					<key>foreground</key>
+					<string><%= palette.tier3.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>Embedded Source</string>
+				<key>scope</key>
+				<string>string source, text source</string>
+				<key>settings</key>
+				<dict>
+					<key>fontStyle</key>
+					<string></string>
+					<key>foreground</key>
+					<string><%= palette.on_surface.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>scope</key>
+				<string>variable.other.property</string>
+				<key>settings</key>
+				<dict>
+					<key>foreground</key>
+					<string><%= palette.tier4.srgb.hex %></string>
+					<key>fontStyle</key>
+					<string></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>scope</key>
+				<string>entity.name</string>
+				<key>settings</key>
+				<dict>
+					<key>fontStyle</key>
+					<string></string>
+					<key>foreground</key>
+					<string><%= palette.on_surface.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>scope</key>
+				<string>invalid</string>
+				<key>settings</key>
+				<dict>
+					<key>fontStyle</key>
+					<string></string>
+					<key>foreground</key>
+					<string><%= palette.error.srgb.hex %></string>
+				</dict>
+			</dict>
+
+			<!-- Diff -->
+			<dict>
+				<key>name</key>
+				<string>diff.header</string>
+				<key>scope</key>
+				<string>meta.diff, meta.diff.header</string>
+				<key>settings</key>
+				<dict>
+					<key>foreground</key>
+					<string><%= palette.tier3.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>diff.deleted</string>
+				<key>scope</key>
+				<string>markup.deleted</string>
+				<key>settings</key>
+				<dict>
+					<key>foreground</key>
+					<string><%= palette.on_error_container.srgb.hex %></string>
+					<key>background</key>
+					<string><%= palette.error_container.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>diff.inserted</string>
+				<key>scope</key>
+				<string>markup.inserted</string>
+				<key>settings</key>
+				<dict>
+					<key>foreground</key>
+					<string><%= palette.on_positive_container.srgb.hex %></string>
+					<key>background</key>
+					<string><%= palette.positive_container.srgb.hex %></string>
+				</dict>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>diff.changed</string>
+				<key>scope</key>
+				<string>markup.changed</string>
+				<key>settings</key>
+				<dict>
+					<key>foreground</key>
+					<string><%= palette.tier2.srgb.hex %></string>
+				</dict>
+			</dict>
+		</array>
+		<key>uuid</key>
+		<string>88709F02-801B-48C3-A87E-2714623691C4</string>
+		<key>colorSpaceName</key>
+		<string>sRGB</string>
+	</dict>
+</plist>
