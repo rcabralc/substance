@@ -11,7 +11,6 @@ do
 		erb -r ./${name}.rb name=${Name} variant=${variant} ${name}/kakoune.kak.erb > ~/.config/kak/colors/${name}-${variant}.kak
 		erb -r ./${name}.rb name=${Name} variant=${variant} ${name}/konsole.colorscheme.erb > ~/.local/share/konsole/${Name}${Variant}.colorscheme
 		erb -r ./${name}.rb name=${Name} variant=${variant} ${name}/plasma.colors.erb > ~/.local/share/color-schemes/${Name}${Variant}.colors
-		mkdir -p ~/.config/bat/themes
 		erb -r ./${name}.rb name=${Name} variant=${variant} ${name}/sublime.tmTheme.erb > ~/.config/bat/themes/${name}-${variant}.tmTheme
 	done
 done
