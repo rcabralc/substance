@@ -6,7 +6,7 @@
    a = format('%x', alpha * 255.0) if alpha != 1
    "rgb#{a && 'a'}:#{palette.public_send(name).srgb.hex.tr('#', '')}#{a}"
   end
-%># Kakoune <%= name %> color scheme
+%># Kakoune <%= name %> <%= variant %> color scheme
 
 # For code
 face global value <%= color[:tier3] %>
@@ -15,7 +15,7 @@ face global variable <%= color[:tier2] %>
 face global module <%= color[:tier2] %>
 face global function <%= color[:tier4] %>
 face global string <%= color[:tier2] %>
-face global keyword <%= color[:tier1] %>+b
+face global keyword <%= color[:tier1] %>
 face global operator <%= color[:tier1] %>
 face global attribute <%= color[:tier4] %>
 face global comment <%= color[:on_surface_variant] %>+i
@@ -59,22 +59,22 @@ face global BufferPadding <%= color[:surface_container_low] %>
 
 # built-in highlighter faces
 face global LineNumbers <%= color[:outline] %>,<%= color[:surface_container_low] %>
-face global LineNumberCursor <%= color[:selection_fixed] %>@LineNumbers
+face global LineNumberCursor <%= color[:selection] %>@LineNumbers
 face global LineNumbersWrapped <%= color[:surface_container_low] %>,<%= color[:surface_container_low] %>+i
 face global MatchingChar default,<%= color[:tier4_container] %>+b
 face global Whitespace <%= color[:outline] %>+f
 face global WrapMarker <%= color[:outline] %>+f
 
 # Containers
-face global DefaultTier1Container default,<%= color[:tier1_container] %>
-face global DefaultTier2Container default,<%= color[:tier2_container] %>
-face global DefaultTier3Container default,<%= color[:tier3_container] %>
-face global DefaultTier4Container default,<%= color[:tier4_container] %>
-face global DefaultTier5Container default,<%= color[:tier5_container] %>
-face global DefaultTier6Container default,<%= color[:tier6_container] %>
-face global DefaultOnSurfaceContainerLowest default,<%= color[:surface_container_lowest] %>
-face global DefaultOnSurface default,<%= color[:surface] %>
-face global DefaultOnSurfaceContainerLow default,<%= color[:surface_container_low] %>
-face global DefaultOnSurfaceContainer default,<%= color[:surface_container] %>
-face global DefaultOnSurfaceContainerHigh default,<%= color[:surface_container_high] %>
-face global DefaultOnSurfaceContainerHighest default,<%= color[:surface_container_highest] %>
+face global DefaultTier1Container default,<%= color[:tier1_container, 0.8] %>
+face global DefaultTier2Container default,<%= color[:tier2_container, 0.8] %>
+face global DefaultTier3Container default,<%= color[:tier3_container, 0.8] %>
+face global DefaultTier4Container default,<%= color[:tier4_container, 0.8] %>
+face global DefaultTier5Container default,<%= color[:tier5_container, 0.8] %>
+face global DefaultTier6Container default,<%= color[:tier6_container, 0.8] %>
+face global DefaultSurfaceContainerLowest default,<%= color[:surface_container_lowest] %>
+face global DefaultSurface default,<%= color[:surface] %>
+face global DefaultSurfaceContainerLow default,<%= color[:surface_container_low] %>
+face global DefaultSurfaceContainer default,<%= color[:surface_container] %>
+face global DefaultSurfaceContainerHigh default,<%= color[:surface_container_high] %>
+face global DefaultSurfaceContainerHighest default,<%= color[:surface_container_highest] %>

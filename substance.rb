@@ -60,30 +60,10 @@ module Substance
 		end
 
 		def srgb
-			return @srgb if @srgb
-
-			srgb = oklab.srgb
-			return (@srgb = srgb) if srgb.in_gamut?
-
-			# Reduce chroma until conversion reaches SRGB gamut within a certain tolerance.
-			# Adapted from https://github.com/LeaVerou/css.land/blob/master/lch/lch.js
-
-			ε = 0.0001
-			hi = @c
-			lo = 0
-			c = (hi + lo) / 2
-
-			while hi - lo > ε
-				if (srgb = OKLab.from_lch(@l, c, @h).srgb).in_gamut?
-					lo = c
-				else
-					hi = c
-				end
-				c = (hi + lo) / 2
-			end
-
-			@srgb = srgb
+			@srgb ||= oklab.srgb
 		end
+
+	private
 
 		def oklab
 			OKLab.from_lch(@l, @c, @h)
@@ -126,6 +106,40 @@ module Substance
 
 		def l
 			@lr
+		end
+
+		def dechromatize(factor)
+			lr, c, h = adjust_chroma(maximize: true).to_a
+			c *= [1, factor].min
+			self.class.new(lr, c, h)
+		end
+
+		def adjust_chroma(maximize: false)
+			if srgb.in_gamut?
+				return self unless maximize
+
+				# Increase chroma while conversion stays in SRGB gamut within a certain tolerance.
+				hi = 0.5
+				lo = @c
+			else
+				# Reduce chroma until conversion reaches SRGB gamut within a certain tolerance.
+				# Adapted from https://github.com/LeaVerou/css.land/blob/master/lch/lch.js
+				hi = @c
+				lo = 0
+			end
+
+			ε = 0.0001
+			c = (hi + lo) / 2
+			while hi - lo > ε
+				if OKLab.from_lch(@l, c, @h).srgb.in_gamut?
+					lo = c
+				else
+					hi = c
+				end
+				c = (hi + lo) / 2
+			end
+
+			self.class.new(@lr, c, @h)
 		end
 	end
 
@@ -264,12 +278,16 @@ module Substance
 
 	SwatchRow = -> *roles do
 		Class.new do
-			attr_reader(*roles)
-
 			define_method(:initialize) do |base, tones:|
 				@tones = tones
 				roles.each_with_index do |role, i|
 					instance_variable_set(:"@#{role}", base.(tones[i] / 100.0))
+				end
+			end
+
+			roles.each do |role|
+				define_method(role) do
+					instance_variable_get(:"@#{role}").adjust_chroma
 				end
 			end
 		end
@@ -282,13 +300,33 @@ module Substance
 			@name = name
 		end
 
+		def color
+			@color.adjust_chroma(maximize: true)
+		end
+
+		def on_color
+			@on_color.dechromatize(0.65)
+		end
+
+		def color_fixed
+			@color_fixed.dechromatize(0.85)
+		end
+
+		def container
+			@container.dechromatize(0.65)
+		end
+
+		def on_container
+			@on_container.adjust_chroma(maximize: true)
+		end
+
 		def describe
 			[
-				Swatch.new("#{@name}", @color, @on_color, @base_acronym).describe,
-				Swatch.new("On #{@name}", @on_color, @color, @base_acronym).describe,
-				Swatch.new("#{@name} Container", @container, @on_container, @base_acronym).describe,
-				Swatch.new("On #{@name} Container", @on_container, @container, @base_acronym).describe,
-				Swatch.new("#{@name} Fixed", @color_fixed, @on_color, @base_acronym).describe
+				Swatch.new("#{@name}", color, on_color, @base_acronym).describe,
+				Swatch.new("On #{@name}", on_color, color, @base_acronym).describe,
+				Swatch.new("#{@name} Container", container, on_container, @base_acronym).describe,
+				Swatch.new("On #{@name} Container", on_container, container, @base_acronym).describe,
+				Swatch.new("#{@name} Fixed", color_fixed, on_color, @base_acronym).describe
 			].reduce(&:zip).map(&:join).join("\n")
 		end
 	end
@@ -296,16 +334,16 @@ module Substance
 	class ContainerSwatchRow < SwatchRow[:lowest, :low, :color, :high, :highest]
 		def initialize(base, on_color:, tones:)
 			super(base, tones: tones)
-			@on_color = on_color
+			@on_color = on_color.adjust_chroma
 		end
 
 		def describe
 			[
-				Swatch.new("Surface Container Lowest", @lowest, @on_color, 'N').describe,
-				Swatch.new("Surface Container Low", @low, @on_color, 'N').describe,
-				Swatch.new("Surface Container", @color, @on_color, 'N').describe,
-				Swatch.new("Surface Container High", @high, @on_color, 'N').describe,
-				Swatch.new("Surface Container Highest", @highest, @on_color, 'N').describe
+				Swatch.new("Surface Container Lowest", lowest, @on_color, 'N').describe,
+				Swatch.new("Surface Container Low", low, @on_color, 'N').describe,
+				Swatch.new("Surface Container", color, @on_color, 'N').describe,
+				Swatch.new("Surface Container High", high, @on_color, 'N').describe,
+				Swatch.new("Surface Container Highest", highest, @on_color, 'N').describe
 			].reduce(&:zip).map(&:join).join("\n")
 		end
 	end
@@ -323,11 +361,11 @@ module Substance
 
 		def describe
 			[
-				Swatch.new("Surface", @color, @on_color, 'N').describe,
-				Swatch.new("On Surface", @on_color, @color, 'N').describe,
-				Swatch.new("On Surface Variant", @on_color_variant, @color, 'NV').describe,
-				Swatch.new("Outline", @outline, @color, 'NV').describe,
-				Swatch.new("Outline Variant", @outline_variant, @on_color, 'NV').describe
+				Swatch.new("Surface", color, on_color, 'N').describe,
+				Swatch.new("On Surface", on_color, color, 'N').describe,
+				Swatch.new("On Surface Variant", on_color_variant, color, 'NV').describe,
+				Swatch.new("Outline", outline, color, 'NV').describe,
+				Swatch.new("Outline Variant", outline_variant, on_color, 'NV').describe
 			].reduce(&:zip).map(&:join).join("\n")
 		end
 	end
@@ -535,7 +573,7 @@ module Substance
 			inc = 3
 			max = 100
 			gap = 5 * inc
-			max_contrast = 60
+			max_contrast = 58
 			variant_contrast = 10
 			fixed_gap = 29
 			highest_light = max - gap
@@ -549,7 +587,7 @@ module Substance
 
 			@tones = {
 				light: {
-					accent: [
+					tier: [
 						color_light,                    # color
 						color_light + max_contrast,     # on-color
 						container_light,                # container
@@ -572,7 +610,7 @@ module Substance
 					]
 				},
 				dark: {
-					accent: [
+					tier: [
 						color_dark,
 						color_dark - max_contrast,
 						container_dark,
@@ -618,12 +656,12 @@ module Substance
 			tones = @tones[mode]
 			SurfaceSwatchRow.new(@neutral, @neutral_variant, tones: tones[:surface]).then do |surface_swatch|
 				Palette.new(
-					TierSwatchRow.new(@tier1, tones: tones[:accent], name: 'Tier 1', base_acronym: 'T1'),
-					TierSwatchRow.new(@tier2, tones: tones[:accent], name: 'Tier 2', base_acronym: 'T2'),
-					TierSwatchRow.new(@tier3, tones: tones[:accent], name: 'Tier 3', base_acronym: 'T3'),
-					TierSwatchRow.new(@tier4, tones: tones[:accent], name: 'Tier 4', base_acronym: 'T4'),
-					TierSwatchRow.new(@tier5, tones: tones[:accent], name: 'Tier 5', base_acronym: 'T5'),
-					TierSwatchRow.new(@tier6, tones: tones[:accent], name: 'Tier 6', base_acronym: 'T6'),
+					TierSwatchRow.new(@tier1, tones: tones[:tier], name: 'Tier 1', base_acronym: 'T1'),
+					TierSwatchRow.new(@tier2, tones: tones[:tier], name: 'Tier 2', base_acronym: 'T2'),
+					TierSwatchRow.new(@tier3, tones: tones[:tier], name: 'Tier 3', base_acronym: 'T3'),
+					TierSwatchRow.new(@tier4, tones: tones[:tier], name: 'Tier 4', base_acronym: 'T4'),
+					TierSwatchRow.new(@tier5, tones: tones[:tier], name: 'Tier 5', base_acronym: 'T5'),
+					TierSwatchRow.new(@tier6, tones: tones[:tier], name: 'Tier 6', base_acronym: 'T6'),
 					surface_swatch,
 					ContainerSwatchRow.new(@neutral, on_color: surface_swatch.on_color, tones: tones[:container]),
 					link: @link,
@@ -644,14 +682,14 @@ module Substance
 	end
 
 	Substance = Scheme.new(
-		tier1: OKLrch[0, 0.2, 330],
-		tier2: OKLrch[0, 0.2, 290],
-		tier3: OKLrch[0, 0.15, 245],
-		tier4: OKLrch[0, 0.15, 155],
-		tier5: OKLrch[0, 0.095, 70],
-		tier6: OKLrch[0, 0.2, 20],
-		neutral: OKLrch[0, 0.015, 305],
-		neutral_variant: OKLrch[0, 0.02, 0],
+		tier1: OKLrch[0, 0, 340],
+		tier2: OKLrch[0, 0, 285],
+		tier3: OKLrch[0, 0, 230],
+		tier4: OKLrch[0, 0, 160],
+		tier5: OKLrch[0, 0, 95],
+		tier6: OKLrch[0, 0, 30],
+		neutral: OKLrch[0, 0.01, 340],
+		neutral_variant: OKLrch[0, 0.02, 30],
 		link: :tier3,
 		link_visited: :tier1,
 		warning: :tier5,
