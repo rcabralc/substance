@@ -573,12 +573,12 @@ module Substance
 			inc = 3
 			max = 100
 			gap = 5 * inc
-			max_contrast = 58
 			variant_contrast = 10
 			fixed_gap = 29
+			max_contrast = 2*fixed_gap
 			highest_light = max - gap
 			fixed = highest_light - fixed_gap
-			highest_dark = highest_light - 2*fixed_gap
+			highest_dark = highest_light - max_contrast
 			color_light = max - max_contrast
 			container_light = highest_light - 5
 			min = highest_dark - gap
@@ -595,18 +595,18 @@ module Substance
 						fixed                           # fixed color
 					],
 					container: [
-						100,          # lowest
-						100 - 2*inc,  # low
-						100 - 3*inc,  # medium
-						100 - 4*inc,  # high
+						max,          # lowest
+						max - 2*inc,  # low
+						max - 3*inc,  # medium
+						max - 4*inc,  # high
 						highest_light # highest
 					],
 					surface: [
-						100 - inc,                             # color
-						highest_light - 60,                    # on-color
-						highest_light - 60 + variant_contrast, # on-color variant
-						highest_light - 30,                    # outline
-						highest_light - 30 + variant_contrast  # outline variant
+						max - inc,                                       # color
+						highest_light - max_contrast,                    # on-color
+						highest_light - max_contrast + variant_contrast, # on-color variant
+						highest_light - fixed_gap,                       # outline
+						highest_light - fixed_gap + variant_contrast     # outline variant
 					]
 				},
 				dark: {
@@ -626,10 +626,10 @@ module Substance
 					],
 					surface: [
 						highest_dark - 4*inc,
-						highest_dark + 60,
-						highest_dark + 60 - variant_contrast,
-						highest_dark + 30,
-						highest_dark + 30 - variant_contrast,
+						highest_dark + max_contrast,
+						highest_dark + max_contrast - variant_contrast,
+						highest_dark + fixed_gap,
+						highest_dark + fixed_gap - variant_contrast,
 					]
 				}
 			}
