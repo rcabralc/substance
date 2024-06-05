@@ -11,7 +11,7 @@ module Substance
 		tier5: OKLrch[0, 0, 180],
 		tier6: OKLrch[0, 0, 330],
 		neutral: OKLrch[0, 0.015, 60],
-		neutral_variant: OKLrch[0, 0.02, 60],
+		neutral_variant: OKLrch[0, 0.03, 60],
 		link: :tier1,
 		link_visited: :tier2,
 		warning: :tier3,
