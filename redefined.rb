@@ -19,7 +19,8 @@ module Substance
 		term1: :tier1,
 		term4: :tier2,
 		term5: :tier6,
-		error: :tier6
+		error: :tier1,
+		selection: :tier6
 	)
 
 	Redefined.print if __FILE__ == $0
