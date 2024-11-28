@@ -1,10 +1,8 @@
 <%
-    require_relative "../#{name.downcase}"
+    require_relative "#{name.downcase}"
     scheme = Substance.const_get(name)
     palette = scheme.public_send(variant)
-    unless defined?(wm_transparency)
-      wm_transparency = 255
-    end
+	wm_transparency = ENV.fetch('SUBSTANCE_PLASMA_TRANSPARENCY', 255)
     is_dark = variant == 'dark'
     description = is_dark ? "#{name}Dark" : "#{name}Light"
     inverted_palette = is_dark ? scheme.light : scheme.dark
@@ -32,13 +30,13 @@ IntensityEffect=0
 [Colors:Button]
 BackgroundAlternate=<%= palette.surface_container_highest.srgb.octets.join(',') %>
 BackgroundNormal=<%= palette.surface_container_highest.srgb.octets.join(',') %>
-DecorationFocus=<%= palette.selection_fixed.srgb.octets.join(',') %>
-DecorationHover=<%= palette.selection_fixed.srgb.octets.join(',') %>
-ForegroundActive=<%= palette.selection_container.srgb.octets.join(',') %>
-ForegroundInactive=<%= palette.outline.srgb.octets.join(',') %>
+DecorationFocus=<%= palette.selection_mild.srgb.octets.join(',') %>
+DecorationHover=<%= palette.selection_mild.srgb.octets.join(',') %>
+ForegroundActive=<%= palette.active.srgb.octets.join(',') %>
+ForegroundInactive=<%= palette.on_surface_mild.srgb.octets.join(',') %>
 ForegroundLink=<%= palette.link.srgb.octets.join(',') %>
 ForegroundNegative=<%= palette.error.srgb.octets.join(',') %>
-ForegroundNeutral=<%= palette.tier2.srgb.octets.join(',') %>
+ForegroundNeutral=<%= palette.warning.srgb.octets.join(',') %>
 ForegroundNormal=<%= palette.on_surface.srgb.octets.join(',') %>
 ForegroundPositive=<%= palette.positive.srgb.octets.join(',') %>
 ForegroundVisited=<%= palette.link_visited.srgb.octets.join(',') %>
@@ -46,13 +44,13 @@ ForegroundVisited=<%= palette.link_visited.srgb.octets.join(',') %>
 [Colors:Complementary]
 BackgroundAlternate=<%= dark_palette.surface.srgb.octets.join(',') %>
 BackgroundNormal=<%= dark_palette.surface.srgb.octets.join(',') %>
-DecorationFocus=<%= dark_palette.selection_fixed.srgb.octets.join(',') %>
-DecorationHover=<%= dark_palette.selection_fixed.srgb.octets.join(',') %>
-ForegroundActive=<%= dark_palette.selection_container.srgb.octets.join(',') %>
-ForegroundInactive=<%= dark_palette.outline.srgb.octets.join(',') %>
+DecorationFocus=<%= dark_palette.selection_mild.srgb.octets.join(',') %>
+DecorationHover=<%= dark_palette.selection_mild.srgb.octets.join(',') %>
+ForegroundActive=<%= dark_palette.active.srgb.octets.join(',') %>
+ForegroundInactive=<%= dark_palette.on_surface_mild.srgb.octets.join(',') %>
 ForegroundLink=<%= dark_palette.link.srgb.octets.join(',') %>
 ForegroundNegative=<%= dark_palette.error.srgb.octets.join(',') %>
-ForegroundNeutral=<%= dark_palette.tier2.srgb.octets.join(',') %>
+ForegroundNeutral=<%= dark_palette.warning.srgb.octets.join(',') %>
 ForegroundNormal=<%= dark_palette.on_surface.srgb.octets.join(',') %>
 ForegroundPositive=<%= dark_palette.positive.srgb.octets.join(',') %>
 ForegroundVisited=<%= dark_palette.link_visited.srgb.octets.join(',') %>
@@ -60,13 +58,13 @@ ForegroundVisited=<%= dark_palette.link_visited.srgb.octets.join(',') %>
 [Colors:Header]
 BackgroundAlternate=<%= palette.surface.srgb.octets.join(',') %>
 BackgroundNormal=<%= palette.surface.srgb.octets.join(',') %>
-DecorationFocus=<%= palette.selection_fixed.srgb.octets.join(',') %>
-DecorationHover=<%= palette.selection_fixed.srgb.octets.join(',') %>
-ForegroundActive=<%= palette.selection_container.srgb.octets.join(',') %>
-ForegroundInactive=<%= palette.outline.srgb.octets.join(',') %>
+DecorationFocus=<%= palette.selection_mild.srgb.octets.join(',') %>
+DecorationHover=<%= palette.selection_mild.srgb.octets.join(',') %>
+ForegroundActive=<%= palette.active.srgb.octets.join(',') %>
+ForegroundInactive=<%= palette.on_surface_mild.srgb.octets.join(',') %>
 ForegroundLink=<%= palette.link.srgb.octets.join(',') %>
 ForegroundNegative=<%= palette.error.srgb.octets.join(',') %>
-ForegroundNeutral=<%= palette.tier2.srgb.octets.join(',') %>
+ForegroundNeutral=<%= palette.warning.srgb.octets.join(',') %>
 ForegroundNormal=<%= palette.on_surface.srgb.octets.join(',') %>
 ForegroundPositive=<%= palette.positive.srgb.octets.join(',') %>
 ForegroundVisited=<%= palette.link_visited.srgb.octets.join(',') %>
@@ -74,27 +72,27 @@ ForegroundVisited=<%= palette.link_visited.srgb.octets.join(',') %>
 [Colors:Selection]
 BackgroundAlternate=<%= palette.selection_container.srgb.octets.join(',') %>
 BackgroundNormal=<%= palette.selection_container.srgb.octets.join(',') %>
-DecorationFocus=<%= palette.selection_fixed.srgb.octets.join(',') %>
-DecorationHover=<%= palette.selection_fixed.srgb.octets.join(',') %>
-ForegroundActive=<%= palette.on_selection_container.srgb.octets.join(',') %>
-ForegroundInactive=<%= palette.outline.srgb.octets.join(',') %>
+DecorationFocus=<%= palette.selection_mild.srgb.octets.join(',') %>
+DecorationHover=<%= palette.selection_mild.srgb.octets.join(',') %>
+ForegroundActive=<%= palette.active.srgb.octets.join(',') %>
+ForegroundInactive=<%= palette.on_surface_mild.srgb.octets.join(',') %>
 ForegroundLink=<%= palette.link.srgb.octets.join(',') %>
 ForegroundNegative=<%= palette.error.srgb.octets.join(',') %>
-ForegroundNeutral=<%= palette.tier2.srgb.octets.join(',') %>
-ForegroundNormal=<%= palette.on_selection_container.srgb.octets.join(',') %>
+ForegroundNeutral=<%= palette.warning.srgb.octets.join(',') %>
+ForegroundNormal=<%= palette.on_surface_intense.srgb.octets.join(',') %>
 ForegroundPositive=<%= palette.positive.srgb.octets.join(',') %>
 ForegroundVisited=<%= palette.link_visited.srgb.octets.join(',') %>
 
 [Colors:Tooltip]
 BackgroundAlternate=<%= inverted_palette.surface.srgb.octets.join(',') %>
 BackgroundNormal=<%= inverted_palette.surface.srgb.octets.join(',') %>
-DecorationFocus=<%= inverted_palette.selection_fixed.srgb.octets.join(',') %>
-DecorationHover=<%= inverted_palette.selection_fixed.srgb.octets.join(',') %>
-ForegroundActive=<%= inverted_palette.selection_container.srgb.octets.join(',') %>
-ForegroundInactive=<%= inverted_palette.outline.srgb.octets.join(',') %>
+DecorationFocus=<%= inverted_palette.selection_mild.srgb.octets.join(',') %>
+DecorationHover=<%= inverted_palette.selection_mild.srgb.octets.join(',') %>
+ForegroundActive=<%= inverted_palette.active.srgb.octets.join(',') %>
+ForegroundInactive=<%= inverted_palette.on_surface_mild.srgb.octets.join(',') %>
 ForegroundLink=<%= inverted_palette.link.srgb.octets.join(',') %>
 ForegroundNegative=<%= inverted_palette.error.srgb.octets.join(',') %>
-ForegroundNeutral=<%= inverted_palette.tier2.srgb.octets.join(',') %>
+ForegroundNeutral=<%= inverted_palette.warning.srgb.octets.join(',') %>
 ForegroundNormal=<%= inverted_palette.on_surface.srgb.octets.join(',') %>
 ForegroundPositive=<%= inverted_palette.positive.srgb.octets.join(',') %>
 ForegroundVisited=<%= inverted_palette.link_visited.srgb.octets.join(',') %>
@@ -102,13 +100,13 @@ ForegroundVisited=<%= inverted_palette.link_visited.srgb.octets.join(',') %>
 [Colors:View]
 BackgroundAlternate=<%= palette.surface_container_lowest.srgb.octets.join(',') %>
 BackgroundNormal=<%= palette.surface_container_lowest.srgb.octets.join(',') %>
-DecorationFocus=<%= palette.selection_fixed.srgb.octets.join(',') %>
-DecorationHover=<%= palette.selection_fixed.srgb.octets.join(',') %>
-ForegroundActive=<%= palette.selection_container.srgb.octets.join(',') %>
-ForegroundInactive=<%= palette.outline.srgb.octets.join(',') %>
+DecorationFocus=<%= palette.selection_mild.srgb.octets.join(',') %>
+DecorationHover=<%= palette.selection_mild.srgb.octets.join(',') %>
+ForegroundActive=<%= palette.active.srgb.octets.join(',') %>
+ForegroundInactive=<%= palette.on_surface_mild.srgb.octets.join(',') %>
 ForegroundLink=<%= palette.link.srgb.octets.join(',') %>
 ForegroundNegative=<%= palette.error.srgb.octets.join(',') %>
-ForegroundNeutral=<%= palette.tier2.srgb.octets.join(',') %>
+ForegroundNeutral=<%= palette.warning.srgb.octets.join(',') %>
 ForegroundNormal=<%= palette.on_surface.srgb.octets.join(',') %>
 ForegroundPositive=<%= palette.positive.srgb.octets.join(',') %>
 ForegroundVisited=<%= palette.link_visited.srgb.octets.join(',') %>
@@ -116,13 +114,13 @@ ForegroundVisited=<%= palette.link_visited.srgb.octets.join(',') %>
 [Colors:Window]
 BackgroundAlternate=<%= palette.surface.srgb.octets.join(',') %>
 BackgroundNormal=<%= palette.surface.srgb.octets.join(',') %>
-DecorationFocus=<%= palette.selection_fixed.srgb.octets.join(',') %>
-DecorationHover=<%= palette.selection_fixed.srgb.octets.join(',') %>
-ForegroundActive=<%= palette.selection_container.srgb.octets.join(',') %>
-ForegroundInactive=<%= palette.outline.srgb.octets.join(',') %>
+DecorationFocus=<%= palette.selection_mild.srgb.octets.join(',') %>
+DecorationHover=<%= palette.selection_mild.srgb.octets.join(',') %>
+ForegroundActive=<%= palette.active.srgb.octets.join(',') %>
+ForegroundInactive=<%= palette.on_surface_mild.srgb.octets.join(',') %>
 ForegroundLink=<%= palette.link.srgb.octets.join(',') %>
 ForegroundNegative=<%= palette.error.srgb.octets.join(',') %>
-ForegroundNeutral=<%= palette.tier2.srgb.octets.join(',') %>
+ForegroundNeutral=<%= palette.warning.srgb.octets.join(',') %>
 ForegroundNormal=<%= palette.on_surface.srgb.octets.join(',') %>
 ForegroundPositive=<%= palette.positive.srgb.octets.join(',') %>
 ForegroundVisited=<%= palette.link_visited.srgb.octets.join(',') %>

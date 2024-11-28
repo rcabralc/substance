@@ -1,19 +1,19 @@
 <%
-    require_relative "../#{name.downcase}"
+    require_relative "#{name.downcase}"
     scheme = Substance.const_get(name)
     palette = scheme.public_send(variant)
     description = variant == 'dark' ? "#{name}Dark" : "#{name}Light"
 %>[Background]
-Color=<%= palette.surface.srgb.octets.join(',') %>
+Color=<%= palette.term0_mild.srgb.octets.join(',') %>
 
 [BackgroundFaint]
-Color=<%= palette.surface_container_lowest.srgb.octets.join(',') %>
+Color=<%= palette.term0_container.srgb.octets.join(',') %>
 
 [BackgroundIntense]
-Color=<%= palette.surface_container_highest.srgb.octets.join(',') %>
+Color=<%= palette.term0.srgb.octets.join(',') %>
 
 [Color0]
-Color=<%= palette.term0_fixed.srgb.octets.join(',') %>
+Color=<%= palette.term0_mild.srgb.octets.join(',') %>
 
 [Color0Faint]
 Color=<%= palette.term0_container.srgb.octets.join(',') %>
@@ -22,7 +22,7 @@ Color=<%= palette.term0_container.srgb.octets.join(',') %>
 Color=<%= palette.term0.srgb.octets.join(',') %>
 
 [Color1]
-Color=<%= palette.term1_fixed.srgb.octets.join(',') %>
+Color=<%= palette.term1_mild.srgb.octets.join(',') %>
 
 [Color1Faint]
 Color=<%= palette.term1_container.srgb.octets.join(',') %>
@@ -31,7 +31,7 @@ Color=<%= palette.term1_container.srgb.octets.join(',') %>
 Color=<%= palette.term1.srgb.octets.join(',') %>
 
 [Color2]
-Color=<%= palette.term2_fixed.srgb.octets.join(',') %>
+Color=<%= palette.term2_mild.srgb.octets.join(',') %>
 
 [Color2Faint]
 Color=<%= palette.term2_container.srgb.octets.join(',') %>
@@ -40,7 +40,7 @@ Color=<%= palette.term2_container.srgb.octets.join(',') %>
 Color=<%= palette.term2.srgb.octets.join(',') %>
 
 [Color3]
-Color=<%= palette.term3_fixed.srgb.octets.join(',') %>
+Color=<%= palette.term3_mild.srgb.octets.join(',') %>
 
 [Color3Faint]
 Color=<%= palette.term3_container.srgb.octets.join(',') %>
@@ -49,7 +49,7 @@ Color=<%= palette.term3_container.srgb.octets.join(',') %>
 Color=<%= palette.term3.srgb.octets.join(',') %>
 
 [Color4]
-Color=<%= palette.term4_fixed.srgb.octets.join(',') %>
+Color=<%= palette.term4_mild.srgb.octets.join(',') %>
 
 [Color4Faint]
 Color=<%= palette.term4_container.srgb.octets.join(',') %>
@@ -58,7 +58,7 @@ Color=<%= palette.term4_container.srgb.octets.join(',') %>
 Color=<%= palette.term4.srgb.octets.join(',') %>
 
 [Color5]
-Color=<%= palette.term5_fixed.srgb.octets.join(',') %>
+Color=<%= palette.term5_mild.srgb.octets.join(',') %>
 
 [Color5Faint]
 Color=<%= palette.term5_container.srgb.octets.join(',') %>
@@ -67,7 +67,7 @@ Color=<%= palette.term5_container.srgb.octets.join(',') %>
 Color=<%= palette.term5.srgb.octets.join(',') %>
 
 [Color6]
-Color=<%= palette.term6_fixed.srgb.octets.join(',') %>
+Color=<%= palette.term6_mild.srgb.octets.join(',') %>
 
 [Color6Faint]
 Color=<%= palette.term6_container.srgb.octets.join(',') %>
@@ -76,7 +76,7 @@ Color=<%= palette.term6_container.srgb.octets.join(',') %>
 Color=<%= palette.term6.srgb.octets.join(',') %>
 
 [Color7]
-Color=<%= palette.term7_fixed.srgb.octets.join(',') %>
+Color=<%= palette.term7_mild.srgb.octets.join(',') %>
 
 [Color7Faint]
 Color=<%= palette.term7_container.srgb.octets.join(',') %>
@@ -85,13 +85,13 @@ Color=<%= palette.term7_container.srgb.octets.join(',') %>
 Color=<%= palette.term7.srgb.octets.join(',') %>
 
 [Foreground]
-Color=<%= palette.on_surface.srgb.octets.join(',') %>
+Color=<%= palette.term7.srgb.octets.join(',') %>
 
 [ForegroundFaint]
-Color=<%= palette.on_surface_variant.srgb.octets.join(',') %>
+Color=<%= palette.term7_container.srgb.octets.join(',') %>
 
 [ForegroundIntense]
-Color=<%= palette.on_surface.srgb.octets.join(',') %>
+Color=<%= palette.term7.srgb.octets.join(',') %>
 
 [General]
 Description=<%= description %>

@@ -1,22 +1,22 @@
 <%
-    require_relative "../#{name.downcase}"
+    require_relative "#{name.downcase}"
     scheme = Substance.const_get(name)
     palette = scheme.public_send(variant)
     description = variant == 'dark' ? "#{name}Dark" : "#{name}Light"
 	hex = -> color { color.srgb.hex.tr('#', '') }
 %>[colors]
-background=<%= hex[palette.surface] %>
-foreground=<%= hex[palette.on_surface] %>
+background=<%= hex[palette.term0_mild] %>
+foreground=<%= hex[palette.term7] %>
 flash=<%= hex[palette.term3_container] %>
 
-regular0=<%= hex[palette.term0_fixed] %>
-regular1=<%= hex[palette.term1_fixed] %>
-regular2=<%= hex[palette.term2_fixed] %>
-regular3=<%= hex[palette.term3_fixed] %>
-regular4=<%= hex[palette.term4_fixed] %>
-regular5=<%= hex[palette.term5_fixed] %>
-regular6=<%= hex[palette.term6_fixed] %>
-regular7=<%= hex[palette.term7_fixed] %>
+regular0=<%= hex[palette.term0_mild] %>
+regular1=<%= hex[palette.term1_mild] %>
+regular2=<%= hex[palette.term2_mild] %>
+regular3=<%= hex[palette.term3_mild] %>
+regular4=<%= hex[palette.term4_mild] %>
+regular5=<%= hex[palette.term5_mild] %>
+regular6=<%= hex[palette.term6_mild] %>
+regular7=<%= hex[palette.term7_mild] %>
 
 bright0=<%= hex[palette.term0] %>
 bright1=<%= hex[palette.term1] %>

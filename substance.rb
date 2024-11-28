@@ -43,6 +43,10 @@ module Substance
 			define_method(:to_a) do
 				channels.map { |name| public_send(name) }
 			end
+
+			define_method(:to_s) do
+				"#{self.class.name}(#{Vector[*to_a]})"
+			end
 		end
 	end
 
@@ -79,6 +83,7 @@ module Substance
 	#
 	# UPDATE: to more closely perceptually match HCT from Google, different k1
 	# and k2 are proposed in
+	# https://gist.github.com/facelessuser/0235cb0fecc35c4e06a8195d5e18947b
 	# https://facelessuser.github.io/coloraide/playground/?notebook=https%3A%2F%2Fgist.githubusercontent.com%2Ffacelessuser%2F0235cb0fecc35c4e06a8195d5e18947b%2Fraw%2F3ca56c388735535de080f1974bfa810f4934adcd%2Fexploring-tonal-palettes.md
 	class OKLrch < OKLch
 		# Values proposed by Björn Ottosson to match L*a*b:
@@ -108,16 +113,16 @@ module Substance
 			@lr
 		end
 
-		def dechromatize(factor)
-			lr, c, h = adjust_chroma(maximize: true).to_a
-			c *= [1, factor].min
+		def scale_max_srgb_chroma(factor)
+			lr, c, h = limit_srgb_chroma(force_maximization: true).to_a
+			c *= factor.clamp(0, 1)
 			self.class.new(lr, c, h)
 		end
 
-		def adjust_chroma(maximize: false)
-			if srgb.in_gamut?
-				return self unless maximize
+		def limit_srgb_chroma(force_maximization: false)
+			return self if srgb.in_gamut? && !force_maximization
 
+			if srgb.in_gamut?
 				# Increase chroma while conversion stays in SRGB gamut within a certain tolerance.
 				hi = 0.5
 				lo = @c
@@ -129,14 +134,13 @@ module Substance
 			end
 
 			ε = 0.0001
-			c = (hi + lo) / 2
 			while hi - lo > ε
+				c = (hi + lo) / 2
 				if OKLab.from_lch(@l, c, @h).srgb.in_gamut?
 					lo = c
 				else
 					hi = c
 				end
-				c = (hi + lo) / 2
 			end
 
 			self.class.new(@lr, c, @h)
@@ -153,7 +157,8 @@ module Substance
 		end
 
 		def oklch
-			hr = a.nonzero? ? Math.atan(b / a) : (b.negative? ? 3 * Math::PI / 2 : Math::PI)
+			hr = Math.atan2(b, a)
+			hr += 2 * Math::PI if hr.negative?
 			OKLch.new(@l, Math.sqrt(a * a + b * b), hr * 180 / Math::PI)
 		end
 
@@ -215,34 +220,66 @@ module Substance
 			[@r, @g, @b].all? { |c| c >= -ε && c <= 1 + ε }
 		end
 
+		def wcag_contrast(other)
+			l2, l1 = [relative_luminance, other.relative_luminance].sort
+			(l1 + 0.05) / (l2 + 0.05)
+		end
+
 	private
 
 		def clamped
-			to_a.map { |c| [[0, c].max, 1].min }
+			to_a.map { |c| c.clamp(0, 1) }
 		end
 	end
 
 	class Swatch
-		def initialize(name, color, fg, base_acronym, show_spec: true, lines_count: 2, line_length: 18)
-			@name = name
-			@color = color
-			@fg = fg
-			@base_acronym = base_acronym
-			@tone = @color.l * 100
-			@lines_count = lines_count
-			@line_length = line_length
-			@show_spec = show_spec
+		def initialize(base_name, description, relative_light)
+			@base_name = base_name
+			@description = description
+			@relative_light = relative_light
+			@base_acronym =
+				case base_name
+				when :neutral then 'N'
+				when :neutral_variant then 'NV'
+				else
+					"T#{base_name.to_s.gsub(/\D/, '')}"
+				end
 		end
 
-		def describe
-			spec = if @show_spec
-				"#{@base_acronym}-#{format('%-3d', @tone)}".then do |spec|
-					[print(@fg, on: @color) { " #{format('%-6s', spec)}     #{@color.srgb.hex} " }]
-				end
+		def color(color_refs, surface_lightness, chroma_factor = nil)
+			base_color = color_refs[@base_name]
+			signal = surface_lightness < 50 ? 1 : -1
+			light = surface_lightness + signal * @relative_light
+			color = base_color.(light / 100.0)
+			if chroma_factor
+				color.scale_max_srgb_chroma(chroma_factor)
+			else
+				color.limit_srgb_chroma
+			end
+		end
+
+		def describe(color, fg:, bg:, strict: false)
+			if strict
+				final_bg, final_fg = bg, fg
+			else
+				final_fg = (fg.l - color.l).abs >= (bg.l - color.l).abs ? fg : bg
+				final_bg = (fg.l - color.l).abs < (bg.l - color.l).abs ? fg : bg
+			end
+			spec = "#{@base_acronym}-#{format('%-3d', color.l * 100)}".then do |spec|
+				print(final_fg, on: color) { " #{format('%-6s', spec)}     #{color.srgb.hex} " }
+			end
+			description_1, description_2 = lines([18, 8]).to_a
+			contrast_fg = color.srgb.wcag_contrast(final_fg.srgb)
+			contrast_bg = color.srgb.wcag_contrast(final_bg.srgb)
+			contrast_fg, contrast_bg = [contrast_fg, contrast_bg].map do |c|
+				format('%.1f', c).rjust(4, ' ')
 			end
 			[
-				*lines.to_a.map { |line| print(@fg, on: @color) { " #{line} " } },
-				*spec
+				print(final_fg, on: color) { " #{description_1} " },
+				print(final_fg, on: color) { " #{description_2} " } +
+				print(final_bg, on: color) { "#{contrast_bg} " } +
+				print(final_fg, on: color) { "#{contrast_fg} " },
+				spec
 			]
 		end
 
@@ -254,207 +291,120 @@ module Substance
 			"\x1b[#{bg_escape}\x1b[#{fg_escape}#{yield}\x1b[0m"
 		end
 
-		def lines
-			return to_enum(__method__) unless block_given?
+		def lines(line_lengths)
+			return to_enum(__method__, line_lengths) unless block_given?
 
-			words = @name.split(/\s+/)
+			words = @description.split(/\s+/)
 			lines_yielded = 0
-			loop do
+			line_lengths.size.times do |i|
+				line_length = line_lengths[i]
 				line = words.shift || ''
-				while words.any? && words.first.length <= @line_length - line.length - 1
+				while words.any? && words.first.length <= line_length - line.size - 1
 					line << ' ' << words.shift
 				end
-				yield line.ljust(@line_length, ' ')[..(@line_length - 1)]
-				lines_yielded += 1
-				break if words.empty?
-				break if lines_yielded == @lines_count
+				yield line.ljust(line_length, ' ')
 			end
-			while lines_yielded < @lines_count
-				yield ''.ljust(@line_length, ' ')
-				lines_yielded += 1
-			end
-		end
-	end
-
-	SwatchRow = -> *roles do
-		Class.new do
-			define_method(:initialize) do |base, tones:|
-				@tones = tones
-				roles.each_with_index do |role, i|
-					instance_variable_set(:"@#{role}", base.(tones[i] / 100.0))
-				end
-			end
-
-			roles.each do |role|
-				define_method(role) do
-					instance_variable_get(:"@#{role}").adjust_chroma
-				end
-			end
-		end
-	end
-
-	class TierSwatchRow < SwatchRow[:color, :on_color, :container, :on_container, :color_fixed]
-		def initialize(base, base_acronym:, name:, tones:)
-			super(base, tones: tones)
-			@base_acronym = base_acronym
-			@name = name
-		end
-
-		def color
-			@color.adjust_chroma(maximize: true)
-		end
-
-		def on_color
-			@on_color.dechromatize(0.65)
-		end
-
-		def color_fixed
-			@color_fixed.dechromatize(0.85)
-		end
-
-		def container
-			@container.dechromatize(0.65)
-		end
-
-		def on_container
-			@on_container.adjust_chroma(maximize: true)
-		end
-
-		def describe
-			[
-				Swatch.new("#{@name}", color, on_color, @base_acronym).describe,
-				Swatch.new("On #{@name}", on_color, color, @base_acronym).describe,
-				Swatch.new("#{@name} Container", container, on_container, @base_acronym).describe,
-				Swatch.new("On #{@name} Container", on_container, container, @base_acronym).describe,
-				Swatch.new("#{@name} Fixed", color_fixed, on_color, @base_acronym).describe
-			].reduce(&:zip).map(&:join).join("\n")
-		end
-	end
-
-	class ContainerSwatchRow < SwatchRow[:lowest, :low, :color, :high, :highest]
-		def initialize(base, on_color:, tones:)
-			super(base, tones: tones)
-			@on_color = on_color.adjust_chroma
-		end
-
-		def describe
-			[
-				Swatch.new("Surface Container Lowest", lowest, @on_color, 'N').describe,
-				Swatch.new("Surface Container Low", low, @on_color, 'N').describe,
-				Swatch.new("Surface Container", color, @on_color, 'N').describe,
-				Swatch.new("Surface Container High", high, @on_color, 'N').describe,
-				Swatch.new("Surface Container Highest", highest, @on_color, 'N').describe
-			].reduce(&:zip).map(&:join).join("\n")
-		end
-	end
-
-	class SurfaceSwatchRow < SwatchRow[:color, :on_color, :on_color_variant, :outline, :outline_variant]
-		def initialize(neutral, neutral_variant, tones:)
-			@tones = tones
-			[:color, :on_color].each_with_index do |role, i|
-				instance_variable_set(:"@#{role}", neutral.(tones[i] / 100.0))
-			end
-			[:on_color_variant, :outline, :outline_variant].each_with_index do |role, i|
-				instance_variable_set(:"@#{role}", neutral_variant.(tones[i + 2] / 100.0))
-			end
-		end
-
-		def describe
-			[
-				Swatch.new("Surface", color, on_color, 'N').describe,
-				Swatch.new("On Surface", on_color, color, 'N').describe,
-				Swatch.new("On Surface Variant", on_color_variant, color, 'NV').describe,
-				Swatch.new("Outline", outline, color, 'NV').describe,
-				Swatch.new("Outline Variant", outline_variant, on_color, 'NV').describe
-			].reduce(&:zip).map(&:join).join("\n")
-		end
-	end
-
-	class TermSwatchRow
-		def initialize(palette)
-			@palette = palette
-		end
-
-		def describe
-			options = { show_spec: false, lines_count: 1, line_length: 8 }
-			faint = [
-				Swatch.new('', @palette.term0_container, @palette.term0_container, '', **options).describe,
-				Swatch.new('', @palette.term1_container, @palette.term1_container, '', **options).describe,
-				Swatch.new('', @palette.term2_container, @palette.term2_container, '', **options).describe,
-				Swatch.new('', @palette.term3_container, @palette.term3_container, '', **options).describe,
-				Swatch.new('', @palette.term4_container, @palette.term4_container, '', **options).describe,
-				Swatch.new('', @palette.term5_container, @palette.term5_container, '', **options).describe,
-				Swatch.new('', @palette.term6_container, @palette.term6_container, '', **options).describe,
-				Swatch.new('', @palette.term7_container, @palette.term7_container, '', **options).describe
-			].reduce(&:zip).map(&:join)
-			normal = [
-				Swatch.new('', @palette.term0_fixed, @palette.term0_fixed, '', **options).describe,
-				Swatch.new('', @palette.term1_fixed, @palette.term1_fixed, '', **options).describe,
-				Swatch.new('', @palette.term2_fixed, @palette.term2_fixed, '', **options).describe,
-				Swatch.new('', @palette.term3_fixed, @palette.term3_fixed, '', **options).describe,
-				Swatch.new('', @palette.term4_fixed, @palette.term4_fixed, '', **options).describe,
-				Swatch.new('', @palette.term5_fixed, @palette.term5_fixed, '', **options).describe,
-				Swatch.new('', @palette.term6_fixed, @palette.term6_fixed, '', **options).describe,
-				Swatch.new('', @palette.term7_fixed, @palette.term7_fixed, '', **options).describe
-			].reduce(&:zip).map(&:join)
-			bright = [
-				Swatch.new('', @palette.term0, @palette.term0, '', **options).describe,
-				Swatch.new('', @palette.term1, @palette.term1, '', **options).describe,
-				Swatch.new('', @palette.term2, @palette.term2, '', **options).describe,
-				Swatch.new('', @palette.term3, @palette.term3, '', **options).describe,
-				Swatch.new('', @palette.term4, @palette.term4, '', **options).describe,
-				Swatch.new('', @palette.term5, @palette.term5, '', **options).describe,
-				Swatch.new('', @palette.term6, @palette.term6, '', **options).describe,
-				Swatch.new('', @palette.term7, @palette.term7, '', **options).describe
-			].reduce(&:zip).map(&:join)
-			[faint, normal, bright].join("\n")
 		end
 	end
 
 	class Palette
-		def initialize(*swatches,
-			           link:, link_visited:, error:, warning:, positive:, selection:,
-			           term1:, term2:, term3:, term4:, term5:, term6:)
-			@tier1_swatch,
-			@tier2_swatch,
-			@tier3_swatch,
-			@tier4_swatch,
-			@tier5_swatch,
-			@tier6_swatch,
-			@surface_swatch,
-			@container_swatch = swatches
-			@swatches = swatches
-			@link = link
-			@link_visited = link_visited
-			@error = error
-			@warning = warning
-			@positive = positive
-			@selection = selection
-			@term1 = term1
-			@term2 = term2
-			@term3 = term3
-			@term4 = term4
-			@term5 = term5
-			@term6 = term6
-		end
+		class << self
+			def define_color(name, &block)
+				define_method(name) do
+					ivar = :"@#{name}"
+					return instance_variable_get(ivar) if instance_variable_defined?(ivar)
 
-		def each(&block)
-			@swatches.each(&block)
-		end
-
-		def sub_role_acronym_of(color)
-			case color
-			when link, link_visited then '↱'
-			when positive then '+'
+					instance_variable_set(ivar, instance_eval(&block))
+				end
 			end
 		end
 
-		%i[tier1 tier2 tier3 tier4 tier5 tier6].each do |name|
-			define_method(name) { instance_variable_get(:"@#{name}_swatch").color }
-			define_method(:"on_#{name}") { instance_variable_get(:"@#{name}_swatch").on_color }
-			define_method(:"#{name}_container") { instance_variable_get(:"@#{name}_swatch").container }
-			define_method(:"on_#{name}_container") { instance_variable_get(:"@#{name}_swatch").on_container }
-			define_method(:"#{name}_fixed") { instance_variable_get(:"@#{name}_swatch").color_fixed }
+		def initialize(color_refs, swatch_rows, surface_lightness, **roles)
+			@color_refs = color_refs
+			@swatch_rows = swatch_rows
+			@swatches = swatch_rows.reduce(&:merge)
+			@surface_lightness = surface_lightness
+			roles.each do |name, value|
+				instance_variable_set(:"@#{name}", value)
+			end
+		end
+
+		(1..6).each do |n|
+			name = :"tier#{n}_container"
+			define_color(name) do
+				base = @swatches[name].color(@color_refs, @surface_lightness, 0.5)
+				signal = @surface_lightness < 50 ? -1 : 1
+				while base.srgb.wcag_contrast(on_surface_intense.srgb) < 6.5
+					base = base.(base.l + (signal * 0.01))
+				end
+				base
+			end
+		end
+
+		(1..6).each do |n|
+			name = :"tier#{n}_mild"
+			define_color(name) do
+				mid_contrast_color(
+					@swatches[name].color(@color_refs, @surface_lightness, 0.7),
+					surface,
+					on_surface
+				)
+			end
+		end
+
+		(1..6).each do |n|
+			name = :"tier#{n}"
+			define_color(name) do
+				base = @swatches[name].color(@color_refs, @surface_lightness, 0.85)
+				signal = @surface_lightness < 50 ? 1 : -1
+				while base.srgb.wcag_contrast(surface.srgb) < 6.5
+					base = base.(base.l + (signal * 0.01))
+				end
+				base
+			end
+		end
+
+		def outline
+			base = @swatches[:outline].color(@color_refs, @surface_lightness)
+			signal = @surface_lightness < 50 ? 1 : -1
+			while base.srgb.wcag_contrast(surface.srgb) < 3.5
+				base = base.(base.l + (signal * 0.01))
+			end
+			base
+		end
+
+		def outline_mild
+			base = @swatches[:outline_mild].color(@color_refs, @surface_lightness)
+			signal = @surface_lightness < 50 ? 1 : -1
+			while base.srgb.wcag_contrast(surface.srgb) < 2.5
+				base = base.(base.l + (signal * 0.01))
+			end
+			base
+		end
+
+		def on_surface_mild
+			base = @swatches[:on_surface_mild].color(@color_refs, @surface_lightness)
+			signal = @surface_lightness < 50 ? 1 : -1
+			while base.srgb.wcag_contrast(surface.srgb) < 6.5
+				base = base.(base.l + (signal * 0.01))
+			end
+			base
+		end
+
+		%i[
+			on_surface
+			on_surface_term
+			on_surface_intense
+			surface_container_lowest
+			surface
+			surface_container_low
+			surface_container
+			surface_container_high
+			surface_container_highest
+		].each do |name|
+			define_color(name) do
+				@swatches[name].color(@color_refs, @surface_lightness)
+			end
 		end
 
 		%i[
@@ -463,7 +413,18 @@ module Substance
 			error
 			warning
 			positive
+			active
+			highlight
 			selection
+			secondary_selection
+			attribute
+			keyword
+			type
+			function
+			value
+			string
+			variable
+			meta
 			term1
 			term2
 			term3
@@ -476,208 +437,151 @@ module Substance
 				public_send(mapped_name)
 			end
 
-			define_method(:"on_#{name}") do
-				mapped_name = instance_variable_get(:"@#{name}")
-				public_send(:"on_#{mapped_name}")
-			end
-
 			define_method(:"#{name}_container") do
 				mapped_name = instance_variable_get(:"@#{name}")
 				public_send(:"#{mapped_name}_container")
 			end
 
-			define_method(:"on_#{name}_container") do
+			define_method(:"#{name}_mild") do
 				mapped_name = instance_variable_get(:"@#{name}")
-				public_send(:"on_#{mapped_name}_container")
-			end
-
-			define_method(:"#{name}_fixed") do
-				mapped_name = instance_variable_get(:"@#{name}")
-				public_send(:"#{mapped_name}_fixed")
+				public_send(:"#{mapped_name}_mild")
 			end
 		end
 
-		def surface
-			@surface_swatch.color
-		end
-
+		alias term0 outline
+		alias term0_mild surface
 		alias term0_container surface
 
-		def on_surface
-			@surface_swatch.on_color
+		alias term7 on_surface_intense
+		alias term7_mild on_surface_term
+		alias term7_container on_surface_mild
+
+		def describe
+			@swatch_rows.map do |swatch_row|
+				swatch_row.map do |name, swatch|
+					fg, strict =
+						if name =~ /tier\d_mild/
+							[on_surface, true]
+						elsif name =~ /tier\d_container/
+							[on_surface_intense, true]
+						else
+							[on_surface, false]
+						end
+					color = public_send(name)
+					swatch.describe(color, bg: surface, fg:, strict:)
+				end.reduce(&:zip).map(&:join).join("\n") + "\n"
+			end.join
 		end
 
-		alias term7 on_surface
+	private
 
-		def on_surface_variant
-			@surface_swatch.on_color_variant
-		end
-
-		alias term7_fixed on_surface_variant
-
-		def outline
-			@surface_swatch.outline
-		end
-
-		alias term7_container outline
-
-		def outline_variant
-			@surface_swatch.outline_variant
-		end
-
-		alias term0 outline_variant
-
-		def surface_container_lowest
-			@container_swatch.lowest
-		end
-
-		def surface_container_low
-			@container_swatch.low
-		end
-
-		def surface_container
-			@container_swatch.color
-		end
-
-		alias term0_fixed surface_container
-
-		def surface_container_high
-			@container_swatch.high
-		end
-
-		def surface_container_highest
-			@container_swatch.highest
+		def mid_contrast_color(base, bg, fg)
+            ε = 0.01
+			attempts = 20
+			diff = base.srgb.wcag_contrast(bg.srgb) - base.srgb.wcag_contrast(fg.srgb)
+			if diff > 0
+				lo = bg.l
+				hi = base.l
+			else
+				hi = fg.l
+				lo = base.l
+			end
+			while diff.abs > ε
+				if diff > 0
+					hi = base.l
+				else
+					lo = base.l
+				end
+				base = base.((lo + hi) / 2.0)
+				diff = base.srgb.wcag_contrast(bg.srgb) - base.srgb.wcag_contrast(fg.srgb)
+			end
+			base
 		end
 	end
 
 	class Scheme
 		def initialize(tier1:, tier2:, tier3:, tier4:, tier5:, tier6:,
 			           neutral:, neutral_variant:, link:, link_visited:,
-			           error:, warning:, positive:, selection: :tier1,
-			           term1: :tier6, term2: :positive, term3: :warning,
-			           term4: :link, term5: :link_visited, term6: :tier4)
-			aliases_refs = %i[tier1 tier2 tier3 tier4 tier5 tier6]
-			raise "link color must correspond to one of: #{aliases_refs.join(', ')}" if !aliases_refs.include?(link)
-			raise "link_visited color must correspond to one of: #{aliases_refs.join(', ')}" if !aliases_refs.include?(link_visited)
-			raise "error color must correspond to one of: #{aliases_refs.join(', ')}" if !aliases_refs.include?(error)
-			raise "warning color must correspond to one of: #{aliases_refs.join(', ')}" if !aliases_refs.include?(warning)
-			raise "positive color must correspond to one of: #{aliases_refs.join(', ')}" if !aliases_refs.include?(positive)
-			raise "selection color must correspond to one of: #{aliases_refs.join(', ')}" if !aliases_refs.include?(selection)
+			           error:, warning:, positive:, active:, highlight: :tier3,
+			           selection: :tier1, secondary_selection: :tier2,
+			           attribute: :tier4, keyword: :tier1, type: :tier3, function: :tier3,
+			           value: :tier2, string: :tier2, variable: :tier5, meta: :tier6,
+			           term1: :error, term2: :positive, term3: :warning,
+			           term4: :link, term5: :link_visited, term6: :active)
+			tier_refs = %i[tier1 tier2 tier3 tier4 tier5 tier6]
+			raise "link color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(link)
+			raise "link_visited color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(link_visited)
+			raise "error color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(error)
+			raise "warning color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(warning)
+			raise "positive color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(positive)
+			raise "active color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(active)
+			raise "highlight color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(highlight)
+			raise "selection color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(selection)
+			raise "secondary selection color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(secondary_selection)
+			raise "attribute color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(attribute)
+			raise "keyword color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(keyword)
+			raise "type color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(type)
+			raise "function color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(function)
+			raise "value color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(value)
+			raise "string color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(string)
+			raise "variable color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(variable)
+			raise "meta color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(meta)
 
-			@tier1, @tier2, @tier3, @tier4, @tier5, @tier6 = [tier1, tier2, tier3, tier4, tier5, tier6]
-			@link, @link_visited, @error, @warning, @positive, @selection = [link, link_visited, error, warning, positive, selection]
-			@term1, @term2, @term3, @term4, @term5, @term6 = [term1, term2, term3, term4, term5, term6]
-			@neutral = neutral
-			@neutral_variant = neutral_variant
-
-			inc = 3
-			max = 100
-			gap = 5 * inc
-			variant_contrast = 10
-			fixed_gap = 29
-			max_contrast = 2*fixed_gap
-			highest_light = max - gap
-			fixed = highest_light - fixed_gap
-			highest_dark = highest_light - max_contrast
-			color_light = max - max_contrast
-			container_light = highest_light - 5
-			min = highest_dark - gap
-			color_dark = min + max_contrast
-			container_dark = highest_dark + 5
-
-			@tones = {
-				light: {
-					tier: [
-						color_light,                    # color
-						color_light + max_contrast,     # on-color
-						container_light,                # container
-						container_light - max_contrast, # on-container
-						fixed                           # fixed color
-					],
-					container: [
-						max,          # lowest
-						max - 2*inc,  # low
-						max - 3*inc,  # medium
-						max - 4*inc,  # high
-						highest_light # highest
-					],
-					surface: [
-						max - inc,                                       # color
-						highest_light - max_contrast,                    # on-color
-						highest_light - max_contrast + variant_contrast, # on-color variant
-						highest_light - fixed_gap,                       # outline
-						highest_light - fixed_gap + variant_contrast     # outline variant
-					]
-				},
-				dark: {
-					tier: [
-						color_dark,
-						color_dark - max_contrast,
-						container_dark,
-						container_dark + max_contrast,
-						fixed
-					],
-					container: [
-						highest_dark - 5*inc,
-						highest_dark - 3*inc,
-						highest_dark - 2*inc,
-						highest_dark - inc,
-						highest_dark
-					],
-					surface: [
-						highest_dark - 4*inc,
-						highest_dark + max_contrast,
-						highest_dark + max_contrast - variant_contrast,
-						highest_dark + fixed_gap,
-						highest_dark + fixed_gap - variant_contrast,
-					]
-				}
+			@color_refs = {
+				tier1:, tier2:, tier3:, tier4:, tier5:, tier6:,
+				neutral:, neutral_variant:
 			}
+
+			@roles = {
+				link:, link_visited:,
+				error:, positive:, warning:, highlight:, active:,
+				selection:, secondary_selection:,
+				attribute:, keyword:, type:, function:, value:, string:, variable:, meta:,
+				term1:, term2:, term3:, term4:, term5:, term6:
+			}
+
+			surface_column = {
+				surface_container_lowest: Swatch.new(:neutral, 'Surface Container Lowest', -3),
+				surface: Swatch.new(:neutral, 'Surface', 0),
+				surface_container_low: Swatch.new(:neutral, 'Surface Container Low', 3),
+				surface_container: Swatch.new(:neutral, 'Surface Container', 6),
+				surface_container_high: Swatch.new(:neutral, 'Surface Container High', 9),
+				surface_container_highest: Swatch.new(:neutral, 'Surface Container Highest', 12),
+			}.to_a
+
+			on_surface_column = {
+				outline_mild: Swatch.new(:neutral_variant, 'Outline Mild', 30),
+				outline: Swatch.new(:neutral_variant, 'Outline', 40),
+				on_surface_mild: Swatch.new(:neutral_variant, 'On Surface Mild', 55),
+				on_surface: Swatch.new(:neutral_variant, 'On Surface', 70),
+				on_surface_term: Swatch.new(:neutral_variant, 'On Surface Term', 76),
+				on_surface_intense: Swatch.new(:neutral_variant, 'On Surface Intense', 80),
+			}.to_a
+
+			@swatch_rows = (1..6).map do |n|
+				on_surface_item_name, on_surface_item_swatch = on_surface_column[n - 1]
+				surface_item_name, surface_item_swatch = surface_column[n - 1]
+				{
+					surface_item_name => surface_item_swatch,
+					on_surface_item_name => on_surface_item_swatch,
+					"tier#{n}_container": Swatch.new(:"tier#{n}", "Tier #{n} Container", 22),
+					"tier#{n}_mild": Swatch.new(:"tier#{n}", "Tier #{n} Mild", 38),
+					"tier#{n}": Swatch.new(:"tier#{n}", "Tier #{n}", 55),
+				}
+			end
 		end
 
 		def light
-			@light ||= compute_palette(:light)
+			@light ||= Palette.new(@color_refs, @swatch_rows, 90, **@roles)
 		end
 
 		def dark
-			@dark ||= compute_palette(:dark)
+			@dark ||= Palette.new(@color_refs, @swatch_rows, 15, **@roles)
 		end
 
 		def print
-			light.each { |swatch| puts swatch.describe }
-			puts TermSwatchRow.new(light).describe
-			dark.each { |swatch| puts swatch.describe }
-			puts TermSwatchRow.new(dark).describe
-		end
-
-		private
-
-		def compute_palette(mode)
-			tones = @tones[mode]
-			SurfaceSwatchRow.new(@neutral, @neutral_variant, tones: tones[:surface]).then do |surface_swatch|
-				Palette.new(
-					TierSwatchRow.new(@tier1, tones: tones[:tier], name: 'Tier 1', base_acronym: 'T1'),
-					TierSwatchRow.new(@tier2, tones: tones[:tier], name: 'Tier 2', base_acronym: 'T2'),
-					TierSwatchRow.new(@tier3, tones: tones[:tier], name: 'Tier 3', base_acronym: 'T3'),
-					TierSwatchRow.new(@tier4, tones: tones[:tier], name: 'Tier 4', base_acronym: 'T4'),
-					TierSwatchRow.new(@tier5, tones: tones[:tier], name: 'Tier 5', base_acronym: 'T5'),
-					TierSwatchRow.new(@tier6, tones: tones[:tier], name: 'Tier 6', base_acronym: 'T6'),
-					surface_swatch,
-					ContainerSwatchRow.new(@neutral, on_color: surface_swatch.on_color, tones: tones[:container]),
-					link: @link,
-					link_visited: @link_visited,
-					error: @error,
-					warning: @warning,
-					positive: @positive,
-					selection: @selection,
-					term1: @term1,
-					term2: @term2,
-					term3: @term3,
-					term4: @term4,
-					term5: @term5,
-					term6: @term6
-				)
-			end
+			puts light.describe
+			puts dark.describe
 		end
 	end
 
@@ -690,13 +594,17 @@ module Substance
 		tier6: OKLrch[0, 0, 30],
 		neutral: OKLrch[0, 0.01, 95],
 		neutral_variant: OKLrch[0, 0.025, 30],
+		active: :tier3,
+		attribute: :tier3,
+		error: :tier6,
 		link: :tier3,
 		link_visited: :tier1,
-		warning: :tier5,
+		meta: :tier6,
 		positive: :tier4,
+		value: :tier4,
+		warning: :tier5,
 		term4: :tier2,
-		term6: :tier3,
-		error: :tier6
+		highlight: :tier5,
 	)
 
 	Substance.print if __FILE__ == $0

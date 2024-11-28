@@ -1,0 +1,27 @@
+<%
+    require_relative "#{name.downcase}"
+    scheme = Substance.const_get(name)
+    palette = scheme.public_send(variant)
+%>
+palette = 0=<%= palette.term0_mild.srgb.hex %>
+palette = 1=<%= palette.term1_mild.srgb.hex %>
+palette = 2=<%= palette.term2_mild.srgb.hex %>
+palette = 3=<%= palette.term3_mild.srgb.hex %>
+palette = 4=<%= palette.term4_mild.srgb.hex %>
+palette = 5=<%= palette.term5_mild.srgb.hex %>
+palette = 6=<%= palette.term6_mild.srgb.hex %>
+palette = 7=<%= palette.term7_mild.srgb.hex %>
+palette = 8=<%= palette.term0.srgb.hex %>
+palette = 9=<%= palette.term1.srgb.hex %>
+palette = 10=<%= palette.term2.srgb.hex %>
+palette = 11=<%= palette.term3.srgb.hex %>
+palette = 12=<%= palette.term4.srgb.hex %>
+palette = 13=<%= palette.term5.srgb.hex %>
+palette = 14=<%= palette.term6.srgb.hex %>
+palette = 15=<%= palette.term7.srgb.hex %>
+background = <%= palette.term0_mild.srgb.hex %>
+foreground = <%= palette.term7.srgb.hex %>
+cursor-color = <%= palette.term7.srgb.hex %>
+cursor-text = <%= palette.term0_mild.srgb.hex %>
+selection-background = <%= palette.selection_container.srgb.hex %>
+selection-foreground = <%= palette.term7.srgb.hex %>
