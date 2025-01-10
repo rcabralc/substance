@@ -139,24 +139,22 @@ module Substance
 		end
 
 		def match_ranges(ranges, tiers)
+			# assumption: ranges don't overlap
+
 			ranges_map = ranges.map do |range|
 				[range, tiers.min_by { |tier| range.deviation(tier.hue) }]
 			end.to_h
 
 			conflicts = ranges_map
 				.group_by { |range, tier| tier }
-				.select { |tier, items| items.size > 1 }
+				.map { |tier, items| [tier, items.map { |range, _| range }] }
+				.select { |tier, ranges| ranges.size > 1 }
 			unmatched_tiers = tiers - ranges_map.values
 			overmatched_tiers = conflicts.map { |tier, _| tier }
 			conflicting_tiers = unmatched_tiers + overmatched_tiers
-			conflicting_ranges = conflicts
-				.flat_map { |tier, items| items.map { |range, _| range } }
-			possible_combos = []
-			conflicting_tiers.size.times do
-				possible_combos << conflicting_tiers.map.with_index do |t, i|
-					[conflicting_ranges[i], t]
-				end
-				conflicting_ranges.push(conflicting_ranges.shift)
+			conflicting_ranges = conflicts.flat_map { |tier, ranges| ranges }
+			possible_combos = conflicting_ranges.permutation.map do |p|
+				p.zip(conflicting_tiers)
 			end
 			ranges_map.merge!(possible_combos.min_by do |combo|
 				combo.sum { |range, tier| range.deviation(tier.hue) }
