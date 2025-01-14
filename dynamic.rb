@@ -62,8 +62,9 @@ module Substance
 			NamedHueRange.new(:link_visited, 290, 350),
 		].freeze
 
-		def initialize(hex)
+		def initialize(hex, quadrants)
 			@hex = hex.strip.gsub(/^#/, '')
+			@quadrants = quadrants.split('').map(&:to_i)
 		end
 
 		def to_hash
@@ -79,7 +80,7 @@ module Substance
 		def params
 			return @params if defined? @params
 
-			tiers = compute_tiers
+			tiers = compute_tiers(@quadrants)
 			colors_map = match_ranges(RANGES, tiers)
 
 			@params = {
@@ -90,43 +91,19 @@ module Substance
 			}.freeze
 		end
 
-		def compute_tiers
-			warm_range = HueRange.new(330, 135)
+		def compute_tiers(quadrants)
+			raise "quadrants must specify four regions" if quadrants.size != 4
+			raise "quadrants must contain and only contain 1, 2, 3 and 4." if ([1, 2, 3, 4] - quadrants).any?
+
 			tier2_hue = (tier1_hue + 180) % 360
-
-			# tier3 follows tier1 warmness.
-			# This requires that warm range have at least 120deg of amplitude,
-			# which is the case.
-			tier3_hue, tier4_hue =
-				if warm_range.include?(tier1_hue)
-					if warm_range.include?(tier1_hue + 60)
-						[(tier1_hue + 60) % 360, (tier1_hue - 60) % 360]
-					else
-						[(tier1_hue - 60) % 360, (tier1_hue + 60) % 360]
-					end
-				else
-					if warm_range.include?(tier1_hue + 60)
-						[(tier1_hue - 60) % 360, (tier1_hue + 60) % 360]
-					else
-						[(tier1_hue + 60) % 360, (tier1_hue - 60) % 360]
-					end
+			tier3_hue, tier4_hue, tier5_hue, tier6_hue = quadrants.map do |region|
+				case region
+				when 1 then (tier1_hue + 60) % 360
+				when 2 then (tier2_hue - 60) % 360
+				when 3 then (tier2_hue + 60) % 360
+				when 4 then (tier1_hue - 60) % 360
 				end
-
-            # Same for tier5 and tier6, but in comparison to tier2.
-			tier5_hue, tier6_hue =
-				if warm_range.include?(tier2_hue)
-					if warm_range.include?(tier2_hue + 60)
-						[(tier2_hue + 60) % 360, (tier2_hue - 60) % 360]
-					else
-						[(tier2_hue - 60) % 360, (tier2_hue + 60) % 360]
-					end
-				else
-					if warm_range.include?(tier2_hue + 60)
-						[(tier2_hue - 60) % 360, (tier2_hue + 60) % 360]
-					else
-						[(tier2_hue + 60) % 360, (tier2_hue - 60) % 360]
-					end
-				end
+			end
 
 			[
 				OpenStruct.new(hue: tier1_hue, name: :tier1),
@@ -140,27 +117,10 @@ module Substance
 
 		def match_ranges(ranges, tiers)
 			# assumption: ranges don't overlap
-
-			ranges_map = ranges.map do |range|
-				[range, tiers.min_by { |tier| range.deviation(tier.hue) }]
-			end.to_h
-
-			conflicts = ranges_map
-				.group_by { |range, tier| tier }
-				.map { |tier, items| [tier, items.map { |range, _| range }] }
-				.select { |tier, ranges| ranges.size > 1 }
-			unmatched_tiers = tiers - ranges_map.values
-			overmatched_tiers = conflicts.map { |tier, _| tier }
-			conflicting_tiers = unmatched_tiers + overmatched_tiers
-			conflicting_ranges = conflicts.flat_map { |tier, ranges| ranges }
-			possible_combos = conflicting_ranges.permutation.map do |p|
-				p.zip(conflicting_tiers)
-			end
-			ranges_map.merge!(possible_combos.min_by do |combo|
+			possible_combos = ranges.permutation.map { |p| p.zip(tiers) }
+			possible_combos.min_by do |combo|
 				combo.sum { |range, tier| range.deviation(tier.hue) }
-			end.to_h)
-
-			ranges_map.map { |range, tier| [range.name, tier.name] }.to_h
+			end.map { |range, tier| [range.name, tier.name] }.to_h
 		end
 
 		def tier1_hue
@@ -193,7 +153,10 @@ module Substance
 		end
 	end
 
-	params = SchemeParamsFromSrgb.new(ENV['SUBSTANCE_DYNAMIC_BASE_COLOR'] || '#ff0000')
+	params = SchemeParamsFromSrgb.new(
+		ENV['SUBSTANCE_DYNAMIC_BASE_COLOR'] || '#ff0000',
+		ENV['SUBSTANCE_DYNAMIC_QUADRANTS_ORDER'] || '1423'
+	)
 	Dynamic = Scheme.new(**params)
 
 	Dynamic.define_singleton_method(:print) do |params|
