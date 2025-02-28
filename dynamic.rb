@@ -62,11 +62,13 @@ module Substance
 			NamedHueRange.new(:link_visited, 290, 350),
 		].freeze
 
-		def initialize(hex, points, neutral_saturation, neutral_variant_saturation)
-			@hex = hex
-			@points = points
-			@neutral_saturation = neutral_saturation
-			@neutral_variant_saturation = neutral_variant_saturation
+		def initialize(**kw)
+			@hex = kw.fetch(:hex)
+			@points = kw.fetch(:points)
+			@neutral_chroma = kw.fetch(:neutral_chroma)
+			@neutral_variant_chroma = kw.fetch(:neutral_variant_chroma)
+			@neutral_color_point = kw.fetch(:neutral_color_point)
+			@neutral_variant_color_point = kw.fetch(:neutral_variant_color_point)
 		end
 
 		def to_hash
@@ -78,7 +80,14 @@ module Substance
 		end
 
 		def seed
-			"##{@hex.downcase},#{@points.join},#{@neutral_saturation},#{@neutral_variant_saturation}"
+			[
+				@hex.downcase,
+				@points.join,
+				@neutral_chroma,
+				@neutral_variant_chroma,
+				@neutral_color_point,
+				@neutral_variant_color_point,
+			].join(',')
 		end
 
 		private
@@ -88,24 +97,33 @@ module Substance
 
 			tiers = compute_tiers
 			colors_map = match_ranges(RANGES, tiers)
+			neutral_hue = hue_for_point(@neutral_color_point)
+			neutral_variant_hue = hue_for_point(@neutral_variant_color_point)
 
 			@params = {
 				**tiers.map { |tier| [tier.name, OKLrch[0, 0, tier.hue]] }.to_h,
-				neutral: OKLrch[0, @neutral_saturation, tier1_hue],
-				neutral_variant: OKLrch[0, @neutral_variant_saturation, tier1_hue],
+				neutral: OKLrch[0, @neutral_chroma, neutral_hue],
+				neutral_variant: OKLrch[0, @neutral_variant_chroma, neutral_variant_hue],
 				**colors_map,
 			}.freeze
 		end
 
-		def compute_tiers
-			tier2_hue, tier3_hue, tier4_hue, tier5_hue, tier6_hue = @points.map do |point|
+		def hue_for_point(point)
 				case point
+				when 0 then tier1_hue
 				when 1 then (tier1_hue + 60) % 360
 				when 2 then (tier1_hue + 120) % 360
 				when 3 then (tier1_hue + 180) % 360
 				when 4 then (tier1_hue - 120) % 360
 				when 5 then (tier1_hue - 60) % 360
+				else
+					raise "invalid point: #{point}"
 				end
+		end
+
+		def compute_tiers
+			tier2_hue, tier3_hue, tier4_hue, tier5_hue, tier6_hue = @points.map do |point|
+				hue_for_point(point)
 			end
 
 			[
@@ -157,16 +175,22 @@ module Substance
 
 		class << self
 			def from_environment
-				new(*parse_seed)
+				new(**parse_seed)
 			end
 
 		private
 
 			def parse_seed
-				seed = ENV['SUBSTANCE_DYNAMIC_SEED'] || '#ff0000'
-				hex, points, neutral_saturation, neutral_variant_saturation = seed.split(',')
+				seed = ENV['SUBSTANCE_DYNAMIC_SEED'] || ''
+				hex,
+					points,
+					neutral_chroma,
+					neutral_variant_chroma,
+					neutral_color_point,
+					neutral_variant_color_point =
+					seed.split(',').map { |s| s.empty?? nil : s }
 
-				hex = hex.strip.gsub(/^#/, '')
+				hex = (hex || 'ff0000').strip.gsub(/^#/, '')
 				unless hex.downcase.match?(/[a-f0-9]{6}/)
 					raise "seed color must specify valid hex RGB color: #{seed}"
 				end
@@ -182,13 +206,34 @@ module Substance
 					raise "seed points must contain and only contain 1, 2, 3, 4 and 5: #{seed}"
 				end
 
-				neutral_saturation ||= '0.01'
-				neutral_saturation = neutral_saturation.to_f
+				neutral_chroma ||= '0'
+				neutral_chroma = neutral_chroma.to_f
 
-				neutral_variant_saturation ||= '0.05'
-				neutral_variant_saturation = neutral_variant_saturation.to_f
+				neutral_variant_chroma ||= '0.05'
+				neutral_variant_chroma = neutral_variant_chroma.to_f
 
-				[hex, points, neutral_saturation, neutral_variant_saturation]
+				neutral_color_point ||= '0'
+				neutral_variant_color_point ||= neutral_color_point
+
+				neutral_color_point = neutral_color_point.to_i
+				neutral_variant_color_point = neutral_variant_color_point.to_i
+
+				if neutral_color_point < 0 || neutral_color_point > 6
+					raise "neutral_color_point must be between 0 and 6"
+				end
+
+				if neutral_variant_color_point < 0 || neutral_variant_color_point > 6
+					raise "neutral_variant_color_point must be between 0 and 6"
+				end
+
+				{
+					hex:,
+					points:,
+					neutral_chroma:,
+					neutral_variant_chroma:,
+					neutral_color_point:,
+					neutral_variant_color_point:,
+				}
 			end
 		end
 	end
