@@ -1,9 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+
 <%
 	require_relative "#{name.downcase}"
 	scheme = Substance.const_get(name)
 	palette = scheme.public_send(variant)
-%><?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+%><!--
+Plasma <%= name %> <%= variant %> color scheme<% if scheme.respond_to?(:seed) %>
+SUBSTANCE_DYNAMIC_SEED=<%= scheme.seed %><% end %>
+-->
+
 <plist version="1.0">
 	<dict>
 		<key>name</key>

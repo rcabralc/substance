@@ -3,7 +3,10 @@
     scheme = Substance.const_get(name)
     palette = scheme.public_send(variant)
     description = variant == 'dark' ? "#{name}Dark" : "#{name}Light"
-%>[colors]
+%># Plasma <%= name %> <%= variant %> color scheme<% if scheme.respond_to?(:seed) %>
+# SUBSTANCE_DYNAMIC_SEED=<%= scheme.seed %><% end %>
+
+[colors]
 
 [colors.primary]
 background = "<%= palette.term0_mild.srgb.hex %>"

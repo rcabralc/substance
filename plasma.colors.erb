@@ -7,7 +7,10 @@
     description = is_dark ? "#{name}Dark" : "#{name}Light"
     inverted_palette = is_dark ? scheme.light : scheme.dark
     dark_palette = scheme.dark
-%>[ColorEffects:Disabled]
+%># Plasma <%= name %> <%= variant %> color scheme<% if scheme.respond_to?(:seed) %>
+# SUBSTANCE_DYNAMIC_SEED=<%= scheme.seed %><% end %>
+
+[ColorEffects:Disabled]
 Color=<%= palette.surface.srgb.octets.join(',') %>
 ColorAmount=0.5
 ColorEffect=2

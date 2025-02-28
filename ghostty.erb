@@ -2,7 +2,9 @@
     require_relative "#{name.downcase}"
     scheme = Substance.const_get(name)
     palette = scheme.public_send(variant)
-%>
+%># Ghostty <%= name %> <%= variant %> color scheme<% if scheme.respond_to?(:seed) %>
+# SUBSTANCE_DYNAMIC_SEED=<%= scheme.seed %><% end %>
+
 palette = 0=<%= palette.term0_mild.srgb.hex %>
 palette = 1=<%= palette.term1_mild.srgb.hex %>
 palette = 2=<%= palette.term2_mild.srgb.hex %>

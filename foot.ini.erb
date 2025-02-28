@@ -4,7 +4,10 @@
     palette = scheme.public_send(variant)
     description = variant == 'dark' ? "#{name}Dark" : "#{name}Light"
 	hex = -> color { color.srgb.hex.tr('#', '') }
-%>[colors]
+%># Foot <%= name %> <%= variant %> color scheme<% if scheme.respond_to?(:seed) %>
+# SUBSTANCE_DYNAMIC_SEED=<%= scheme.seed %><% end %>
+
+[colors]
 background=<%= hex[palette.term0_mild] %>
 foreground=<%= hex[palette.term7] %>
 flash=<%= hex[palette.term3_container] %>

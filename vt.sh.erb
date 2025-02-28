@@ -3,7 +3,10 @@
     scheme = Substance.const_get(name)
     palette = scheme.public_send(variant)
     description = variant == 'dark' ? "#{name}Dark" : "#{name}Light"
-%>if [ "$TERM" = 'linux' ]; then
+%># VT <%= name %> <%= variant %> color scheme<% if scheme.respond_to?(:seed) %>
+# SUBSTANCE_DYNAMIC_SEED=<%= scheme.seed %><% end %>
+
+if [ "$TERM" = 'linux' ]; then
   echo -en "\e]P0<%= palette.term0_mild.srgb.hex.tr('#', '') %>"
   echo -en "\e]P1<%= palette.term1_mild.srgb.hex.tr('#', '') %>"
   echo -en "\e]P2<%= palette.term2_mild.srgb.hex.tr('#', '') %>"

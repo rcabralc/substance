@@ -6,7 +6,8 @@
    a = format('%x', alpha * 255.0) if alpha != 1
    "rgb#{a && 'a'}:#{palette.public_send(name).srgb.hex.tr('#', '')}#{a}"
   end
-%># Kakoune <%= name %> <%= variant %> color scheme
+%># Kakoune <%= name %> <%= variant %> color scheme<% if scheme.respond_to?(:seed) %>
+# SUBSTANCE_DYNAMIC_SEED=<%= scheme.seed %><% end %>
 
 declare-option str color_active <%= color[:active] %>
 declare-option str color_active_container <%= color[:active_container] %>
