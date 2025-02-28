@@ -476,7 +476,7 @@ module Substance
 	private
 
 		def mid_contrast_color(base, bg, fg)
-            ε = 0.01
+			ε = 0.01
 			attempts = 20
 			diff = base.srgb.wcag_contrast(bg.srgb) - base.srgb.wcag_contrast(fg.srgb)
 			if diff > 0
@@ -501,13 +501,13 @@ module Substance
 
 	class Scheme
 		def initialize(tier1:, tier2:, tier3:, tier4:, tier5:, tier6:,
-			           neutral:, neutral_variant:, link:, link_visited:,
-			           error:, warning:, positive:, active:, highlight: :tier3,
-			           selection: :tier1, secondary_selection: :tier2,
-			           attribute: :tier4, keyword: :tier1, type: :tier3, function: :tier3,
-			           value: :tier2, string: :tier2, variable: :tier5, meta: :tier6,
-			           term1: :error, term2: :positive, term3: :warning,
-			           term4: :link, term5: :link_visited, term6: :active)
+			             neutral:, neutral_variant:, link:, link_visited:,
+			             error:, warning:, positive:, active:, highlight: :tier3,
+			             selection: :tier1, secondary_selection: :tier2,
+			             attribute: :tier4, keyword: :tier1, type: :tier3, function: :tier3,
+			             value: :tier2, string: :tier2, variable: :tier5, meta: :tier6,
+			             term1: :error, term2: :positive, term3: :warning,
+			             term4: :link, term5: :link_visited, term6: :active)
 			tier_refs = %i[tier1 tier2 tier3 tier4 tier5 tier6]
 			raise "link color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(link)
 			raise "link_visited color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(link_visited)
