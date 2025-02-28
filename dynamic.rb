@@ -62,9 +62,11 @@ module Substance
 			NamedHueRange.new(:link_visited, 290, 350),
 		].freeze
 
-		def initialize(hex, quadrants)
-			@hex = hex.strip.gsub(/^#/, '')
-			@quadrants = quadrants.split('').map(&:to_i)
+		def initialize(hex, points, neutral_saturation, neutral_variant_saturation)
+			@hex = hex
+			@points = points
+			@neutral_saturation = neutral_saturation
+			@neutral_variant_saturation = neutral_variant_saturation
 		end
 
 		def to_hash
@@ -75,33 +77,34 @@ module Substance
 			params.each(&)
 		end
 
+		def seed
+			"##{@hex.downcase},#{@points.join},#{@neutral_saturation},#{@neutral_variant_saturation}"
+		end
+
 		private
 
 		def params
 			return @params if defined? @params
 
-			tiers = compute_tiers(@quadrants)
+			tiers = compute_tiers
 			colors_map = match_ranges(RANGES, tiers)
 
 			@params = {
 				**tiers.map { |tier| [tier.name, OKLrch[0, 0, tier.hue]] }.to_h,
-				neutral: OKLrch[0, 0.025, tier1_hue],
-				neutral_variant: OKLrch[0, 0.06, tier1_hue],
+				neutral: OKLrch[0, @neutral_saturation, tier1_hue],
+				neutral_variant: OKLrch[0, @neutral_variant_saturation, tier1_hue],
 				**colors_map,
 			}.freeze
 		end
 
-		def compute_tiers(quadrants)
-			raise "quadrants must specify four regions" if quadrants.size != 4
-			raise "quadrants must contain and only contain 1, 2, 3 and 4." if ([1, 2, 3, 4] - quadrants).any?
-
-			tier2_hue = (tier1_hue + 180) % 360
-			tier3_hue, tier4_hue, tier5_hue, tier6_hue = quadrants.map do |region|
-				case region
+		def compute_tiers
+			tier2_hue, tier3_hue, tier4_hue, tier5_hue, tier6_hue = @points.map do |point|
+				case point
 				when 1 then (tier1_hue + 60) % 360
-				when 2 then (tier2_hue - 60) % 360
-				when 3 then (tier2_hue + 60) % 360
-				when 4 then (tier1_hue - 60) % 360
+				when 2 then (tier1_hue + 120) % 360
+				when 3 then (tier1_hue + 180) % 360
+				when 4 then (tier1_hue - 120) % 360
+				when 5 then (tier1_hue - 60) % 360
 				end
 			end
 
@@ -151,20 +154,69 @@ module Substance
 			] * lmsg]
 			@tier1_hue = oklab.oklch.h
 		end
-	end
 
-	params = SchemeParamsFromSrgb.new(
-		ENV['SUBSTANCE_DYNAMIC_BASE_COLOR'] || '#ff0000',
-		ENV['SUBSTANCE_DYNAMIC_QUADRANTS_ORDER'] || '1423'
-	)
-	Dynamic = Scheme.new(**params)
+		class << self
+			def from_environment
+				new(*parse_seed)
+			end
 
-	Dynamic.define_singleton_method(:print) do |params|
-		params.each do |name, param|
-			puts "#{name}: #{param.respond_to?(:h) ? param.h : param}"
+		private
+
+			def parse_seed
+				seed = ENV['SUBSTANCE_DYNAMIC_SEED'] || '#ff0000'
+				hex, points, neutral_saturation, neutral_variant_saturation = seed.split(',')
+
+				hex = hex.strip.gsub(/^#/, '')
+				unless hex.downcase.match?(/[a-f0-9]{6}/)
+					raise "seed color must specify valid hex RGB color: #{seed}"
+				end
+
+				points ||= '31524'
+				points = points.split('').map(&:to_i)
+
+				if points.size != 5
+					raise "seed points must specify five values: #{seed}"
+				end
+
+				if ([1, 2, 3, 4, 5] - points).any?
+					raise "seed points must contain and only contain 1, 2, 3, 4 and 5: #{seed}"
+				end
+
+				neutral_saturation ||= '0.01'
+				neutral_saturation = neutral_saturation.to_f
+
+				neutral_variant_saturation ||= '0.05'
+				neutral_variant_saturation = neutral_variant_saturation.to_f
+
+				[hex, points, neutral_saturation, neutral_variant_saturation]
+			end
 		end
-		super()
 	end
 
-	Dynamic.print(params) if __FILE__ == $0
+	module SchemeMixin
+		def initialize
+			@params = SchemeParamsFromSrgb.from_environment
+			super(**@params)
+		end
+
+		def seed
+			@params.seed
+		end
+
+		def print
+			@params.each do |name, param|
+				puts "#{name}: #{param.respond_to?(:h) ? param.h : param}"
+			end
+			puts "seed: #{@params.seed}"
+			super()
+		end
+	end
+
+	class Scheme
+		prepend SchemeMixin
+	end
+
+	Dynamic = Scheme.new
+
+	Dynamic.print if __FILE__ == $0
 end
