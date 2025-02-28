@@ -12,15 +12,17 @@ module Substance
 		tier6: OKLrch[0, 0, 340],
 		neutral: OKLrch[0, 0.015, 68],
 		neutral_variant: OKLrch[0, 0.033, 68],
-		value: :tier6,
+		active: :tier4,
 		error: :tier1,
-		positive: :tier5,
-		warning: :tier3,
+		highlight: :tier5,
+		keyword: :tier1,
 		link: :tier1,
 		link_visited: :tier6,
-		active: :tier4,
+		positive: :tier5,
+		string: :tier2,
 		term4: :tier2,
-		highlight: :tier5,
+		value: :tier6,
+		warning: :tier3,
 	)
 
 	Redefined.print if __FILE__ == $0

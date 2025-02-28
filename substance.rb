@@ -504,8 +504,8 @@ module Substance
 			             neutral:, neutral_variant:, link:, link_visited:,
 			             error:, warning:, positive:, active:, highlight: :tier3,
 			             selection: :tier1, secondary_selection: :tier2,
-			             attribute: :tier4, keyword: :tier1, type: :tier3, function: :tier3,
-			             value: :tier2, string: :tier2, variable: :tier5, meta: :tier6,
+			             attribute: :tier4, keyword: :tier2, type: :tier3, function: :tier3,
+			             value: :tier1, string: :tier1, variable: :tier5, meta: :tier6,
 			             term1: :error, term2: :positive, term3: :warning,
 			             term4: :link, term5: :link_visited, term6: :active)
 			tier_refs = %i[tier1 tier2 tier3 tier4 tier5 tier6]
@@ -597,10 +597,12 @@ module Substance
 		active: :tier3,
 		attribute: :tier3,
 		error: :tier6,
+		keyword: :tier1,
 		link: :tier3,
 		link_visited: :tier1,
 		meta: :tier6,
 		positive: :tier4,
+		string: :tier2,
 		value: :tier4,
 		warning: :tier5,
 		term4: :tier2,
