@@ -85,14 +85,14 @@ module Substance
 	# and k2 are proposed in
 	# https://gist.github.com/facelessuser/0235cb0fecc35c4e06a8195d5e18947b
 	# https://facelessuser.github.io/coloraide/playground/?notebook=https%3A%2F%2Fgist.githubusercontent.com%2Ffacelessuser%2F0235cb0fecc35c4e06a8195d5e18947b%2Fraw%2F3ca56c388735535de080f1974bfa810f4934adcd%2Fexploring-tonal-palettes.md
-	class OKLrch < OKLch
+	class OKLrch < Channels[:l, :c, :h]
 		# Values proposed by Björn Ottosson to match L*a*b:
-		# K1 = 0.206
-		# K2 = 0.03
+		K1 = 0.206
+		K2 = 0.03
 
 		# Values proposed by facelessuser (creator of ColorAide lib) to better match HCT:
-		K1 = 0.173
-		K2 = 0.004
+		# K1 = 0.173
+		# K2 = 0.004
 
 		K3 = (1 + K1) / (1 + K2)
 
