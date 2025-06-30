@@ -453,7 +453,7 @@ module Substance
 		alias term0_container surface
 
 		alias term7 on_surface_intense
-		alias term7_mild on_surface_term
+		alias term7_mild on_surface
 		alias term7_container on_surface_mild
 
 		def describe
