@@ -1,0 +1,81 @@
+#!/bin/sh
+
+change_bat_scheme () {
+	[ -w  ~/.config/bat/config ] || return
+
+	sed -i -E "s/^(--theme=\").*/\1$1\"/" ~/.config/bat/config
+	bat cache --build >/dev/null
+}
+
+change_foot_scheme () {
+	[ -w  ~/.config/foot/foot.ini ] || return
+
+	local color_scheme=$(echo "$1" | sed -E 's/-(dark|light)$//')
+	local variant=$(echo "$1" | sed -E 's/.*-(dark|light)$/\1/')
+	sed -i -E "s/^(include=~\/\.config\/foot\/)(.*\.ini)/\1$color_scheme.ini/" ~/.config/foot/foot.ini
+	if [ "$variant" = 'dark' ]; then
+		sed -i -E "s/^(initial-color-theme)=.*\$/\1=1/" ~/.config/foot/foot.ini
+		killall -s SIGUSR1 -e foot
+	else
+		sed -i -E "s/^(initial-color-theme)=.*\$/\1=2/" ~/.config/foot/foot.ini
+		killall -s SIGUSR2 -e foot
+	fi
+}
+
+change_ghostty_scheme () {
+	[ -w  ~/.config/ghostty/config ] || return
+
+	local color_scheme=$(echo "$1" | sed -E 's/-(dark|light)$//')
+	sed -i -E "s/^(theme = ).*/\1light:${color_scheme}-light,dark:${color_scheme}-dark/" ~/.config/ghostty/config
+}
+
+change_kakoune_scheme () {
+	[ -w  ~/.config/kak/kakrc ] || return
+
+	sed -i -E "s/^(colorscheme ).*/\1$1/" ~/.config/kak/kakrc
+	for session in $(kak -l); do
+		echo "colorscheme $1" | kak -p "$session"
+	done
+}
+
+change_konsole_scheme () {
+	[ -w  ~/.local/share/konsole/Substance.profile ] || return
+
+	sed -i -E "s/^(ColorScheme=).*/\1$1/" ~/.local/share/konsole/Substance.profile
+}
+
+change_vt_colors () {
+	pushd ~/.config > /dev/null
+	local vt_file="vt-colors-$1.sh"
+	[ -r "$vt_file" ] || return
+
+	rm -rf vt-colors.sh
+	ln -s "$vt_file" vt-colors.sh
+	popd > /dev/null
+}
+
+on_color_scheme_change () {
+	local color_scheme=$(cat ~/.config/kdeglobals | grep ColorScheme= | cut -d= -f2)
+
+	case "$color_scheme" in
+		__COLOR_SCHEMES__)
+			local kebab_color_scheme=$(to_kebab_case "$color_scheme")
+			change_bat_scheme "$kebab_color_scheme"
+			change_foot_scheme "$kebab_color_scheme"
+			change_ghostty_scheme "$kebab_color_scheme"
+			change_kakoune_scheme "$kebab_color_scheme"
+			change_konsole_scheme "$color_scheme"
+			change_vt_colors "$kebab_color_scheme"
+			;;
+	esac
+}
+
+to_kebab_case () {
+	echo "$1" | sed -E 's/([a-z])([A-Z])/\1-\2/g' | tr '[:upper:]' '[:lower:]'
+}
+
+dbus-monitor "interface='org.kde.kconfig.notify',path='/kdeglobals'" | \
+while IFS= read -r line; do
+	echo "$line" | grep -q "ColorScheme"
+	[ $? -eq 0 ] && on_color_scheme_change
+done

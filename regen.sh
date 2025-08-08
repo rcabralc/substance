@@ -9,6 +9,7 @@ usage () {
 	echo "        [--foot]"
 	echo "        [--ghostty]"
 	echo "        [--kakoune]"
+	echo "        [--kconfig-monitor]"
 	echo "        [--konsole]"
 	echo "        [--plasma]"
 	echo "        [--vt]"
@@ -47,6 +48,17 @@ regen_kakoune () {
 	erb -r ./"$1.rb" "name=$2" variant=dark ./kakoune.kak.erb > ~/.config/kak/colors/"$1-dark.kak"
 }
 
+regen_kconfig_monitor () {
+	local patterns=()
+	for scheme in ${all_schemes[*]}
+	do
+		for variant in Dark Light; do patterns+=("$scheme$variant"); done
+	done
+	local pattern=$(IFS='|'; echo "${patterns[*]}")
+	cat ./kconfig-monitor.template | sed "s/__COLOR_SCHEMES__/$pattern/" > ~/.local/bin/kconfig-monitor
+	chmod u+x ~/.local/bin/kconfig-monitor
+}
+
 regen_konsole () {
 	erb -r ./"$1.rb" "name=$2" variant=light ./konsole.colorscheme.erb > ~/.local/share/konsole/"$2Light.colorscheme"
 	erb -r ./"$1.rb" "name=$2" variant=dark ./konsole.colorscheme.erb > ~/.local/share/konsole/"$2Dark.colorscheme"
@@ -70,7 +82,7 @@ all_per_scheme_items=(alacritty
                       konsole
                       plasma
                       vt)
-all_items=()
+all_items=(kconfig_monitor)
 
 all_schemes=()
 for scheme in $(grep -r -o -P '[A-Z].*(?= = Scheme\.new)' . | cut -d: -f2)
@@ -97,6 +109,9 @@ while [ "$#" -gt 0 ]; do
 			;;
 		--kakoune)
 			per_scheme_includes+=(kakoune)
+			;;
+		--kconfig-monitor)
+			includes+=(kconfig_monitor)
 			;;
 		--konsole)
 			per_scheme_includes+=(konsole)
