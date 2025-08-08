@@ -22,6 +22,24 @@ module Substance
 		[ 0.05563007969699366, -0.20397695888897652, 1.0569715142428786 ],
 	]
 
+	LinearSRGBtoXYZ = Matrix[
+		[0.41239079926595934, 0.357584339383878,   0.1804807884018343 ],
+		[0.21263900587151027, 0.715168678767756,   0.07219231536073371],
+		[0.01933081871559182, 0.11919477979462598, 0.9505321522496607 ],
+	]
+
+	XYZtoLMS = Matrix[
+		[0.8190224379967030, 0.3619062600528904, -0.1288737815209879],
+		[0.0329836539323885, 0.9292868615863434,  0.0361446663506424],
+		[0.0481771893596242, 0.2642395317527308,  0.6335478284694309],
+	]
+
+	LMStoOKLab = Matrix[
+		[0.2104542683093140,  0.7936177747023054, -0.0040720430116193],
+		[1.9779985324311684, -2.4285922420485799,  0.4505937096174110],
+		[0.0259040424655478,  0.7827717124575296, -0.8086757549230774],
+	]
+
 	Channels = -> *channels, other: [] do
 		Class.new do
 			attr_reader(*channels, *other)
@@ -47,6 +65,12 @@ module Substance
 			define_method(:to_s) do
 				"#{self.class.name}(#{Vector[*self]})"
 			end
+
+			define_method(:deconstruct_keys) do |keys|
+				keys.to_h do |key|
+					[key, public_send(key)]
+				end
+			end
 		end
 	end
 
@@ -63,14 +87,56 @@ module Substance
 			self.class.new(l, c, h)
 		end
 
+		def scale_max_srgb_chroma(factor = 1.0)
+			limit_srgb_chroma(force_maximization: true, factor:)
+		end
+
+		def limit_srgb_chroma(force_maximization: false, factor: nil)
+			unless factor.nil?
+				force_maximization = true
+				factor = factor.clamp(0, 1)
+			end
+
+			return self if srgb.in_gamut? && !force_maximization
+
+			if srgb.in_gamut?
+				# Increase chroma while conversion stays in SRGB gamut within a certain tolerance.
+				hi = 0.5
+				lo = c
+			else
+				# Reduce chroma until conversion reaches SRGB gamut within a certain tolerance.
+				# Adapted from https://github.com/LeaVerou/css.land/blob/master/lch/lch.js
+				hi = c
+				lo = 0
+			end
+
+			ε = 1e-4
+			while hi - lo > ε
+				new_c = (hi + lo) / 2
+				if call(nil, new_c).srgb.in_gamut?
+					lo = new_c
+				else
+					hi = new_c
+				end
+			end
+
+			call(nil, new_c * (factor || 1))
+		end
+
 		def srgb
 			@srgb ||= oklab.srgb
 		end
 
-	private
+		def ΔE(*, **)
+			oklab.ΔE(*, **)
+		end
 
 		def oklab
-			OKLab.from_lch(@l, @c, @h)
+			@oklab ||= OKLab.from_lch(l, c, h)
+		end
+
+		def self.from_hex(hex)
+			OKLab.from_hex(hex).oklch
 		end
 	end
 
@@ -85,7 +151,7 @@ module Substance
 	# and k2 are proposed in
 	# https://gist.github.com/facelessuser/0235cb0fecc35c4e06a8195d5e18947b
 	# https://facelessuser.github.io/coloraide/playground/?notebook=https%3A%2F%2Fgist.githubusercontent.com%2Ffacelessuser%2F0235cb0fecc35c4e06a8195d5e18947b%2Fraw%2F3ca56c388735535de080f1974bfa810f4934adcd%2Fexploring-tonal-palettes.md
-	class OKLrch < Channels[:l, :c, :h]
+	class OKLrch < Channels[:lr, :c, :h]
 		# Values proposed by Björn Ottosson to match L*a*b:
 		K1 = 0.206
 		K2 = 0.03
@@ -97,9 +163,9 @@ module Substance
 		K3 = (1 + K1) / (1 + K2)
 
 		def initialize(lr, c, h)
+			super(lr, c, h)
 			l = lr * (lr + K1) / (lr + K2) / K3
-			@lr = lr
-			super(l, c, h)
+			@oklch = OKLch.new(l, c, h)
 		end
 
 		def call(lr = nil, c = nil, h = nil)
@@ -109,41 +175,47 @@ module Substance
 			self.class.new(lr, c, h)
 		end
 
-		def l
-			@lr
-		end
-
-		def scale_max_srgb_chroma(factor)
-			lr, c, h = limit_srgb_chroma(force_maximization: true).to_a
-			c *= factor.clamp(0, 1)
-			self.class.new(lr, c, h)
+		def scale_max_srgb_chroma(factor = 1.0)
+			self.class.from_oklch(@oklch.scale_max_srgb_chroma(factor))
 		end
 
 		def limit_srgb_chroma(force_maximization: false)
 			return self if srgb.in_gamut? && !force_maximization
 
-			if srgb.in_gamut?
-				# Increase chroma while conversion stays in SRGB gamut within a certain tolerance.
-				hi = 0.5
-				lo = @c
-			else
-				# Reduce chroma until conversion reaches SRGB gamut within a certain tolerance.
-				# Adapted from https://github.com/LeaVerou/css.land/blob/master/lch/lch.js
-				hi = @c
-				lo = 0
-			end
+			self.class.from_oklch(@oklch.limit_srgb_chroma(force_maximization:))
+		end
 
-			ε = 0.0001
-			while hi - lo > ε
-				c = (hi + lo) / 2
-				if OKLab.from_lch(@l, c, @h).srgb.in_gamut?
-					lo = c
-				else
-					hi = c
-				end
-			end
+		def ΔE(*, **)
+			oklab.ΔE(*, **)
+		end
 
-			self.class.new(@lr, c, @h)
+		def srgb
+			@oklch.srgb
+		end
+
+		def oklab
+			@oklch.oklab
+		end
+
+		def inspect
+			lr = format('%3.1f', @lr)
+			c = format('%3.1f', @c)
+			h = format('%5.1f', @h)
+			color = "\x1b[48;2;#{format('%d;%d;%d', *srgb.octets)}m   \x1b[0m"
+			%[OKLrch[#{lr},#{c},#{h}] #{color}]
+		end
+
+		def self.from_hex(hex)
+			from_oklch(OKLab.from_hex(hex).oklch)
+		end
+
+		def self.from_oklch(oklch)
+			l, c, h = *oklch
+			new(lr_from_l(l), c, h)
+		end
+
+		def self.lr_from_l(l)
+			(K3 * l - K1 + Math.sqrt((K3 * l - K1)**2 + 4 * K2 * K3 * l)) / 2
 		end
 	end
 
@@ -156,6 +228,21 @@ module Substance
 			new(l, c * Math.cos(h * Math::PI / 180), c * Math.sin(h * Math::PI / 180))
 		end
 
+		def self.from_hex(hex)
+			hex = hex.gsub(/^#/, '')
+			rgb = Vector[*hex.chars.each_slice(2).map { |s| s.join.to_i(16) / 255.0 }]
+			linear_rgb = rgb.map do |c|
+				if c.abs <= 0.04045
+					c / 12.92
+				else
+					(c < 0 ? -1 : 1) * (((c.abs + 0.055) / 1.055)**2.4)
+				end
+			end
+			xyz = LinearSRGBtoXYZ * linear_rgb
+			lms = XYZtoLMS * xyz
+			OKLab[*(LMStoOKLab * lms.map { |c| c**(1.0 / 3) })]
+		end
+
 		def oklch
 			hr = Math.atan2(b, a)
 			hr += 2 * Math::PI if hr.negative?
@@ -166,6 +253,104 @@ module Substance
 			self
 		end
 
+		def ΔE(other, mode: :ok)
+			case mode
+			when :ok
+				other.oklab => { a: other_a, b: other_b, l: other_l }
+				Math.sqrt((a - other_a)**2 + (b - other_b)**2 + (l - other_l)**2)
+			when :ciede2000
+				# CIEDE2000 implementation based on the formula from Wikipedia
+				# https://en.wikipedia.org/wiki/Color_difference#CIEDE2000
+				# and
+				# https://drafts.csswg.org/css-color-4/#color-conversion-code
+				# and
+				# https://michel-leonard.github.io/ciede2000-color-matching/lab-color-calculator.html
+				l1, a1, b1 = *cielab
+				l2, a2, b2 = *other.oklab.cielab
+
+				c1 = Math.sqrt(a1**2 + b1**2)
+				c2 = Math.sqrt(a2**2 + b2**2)
+				c_bar = (c1 + c2) / 2.0
+
+				g = 0.5 * (1 - Math.sqrt(c_bar**7 / (c_bar**7 + 25**7)))
+				a1_prime = (1 + g) * a1
+				a2_prime = (1 + g) * a2
+
+				c1_prime = Math.sqrt(a1_prime**2 + b1**2)
+				c2_prime = Math.sqrt(a2_prime**2 + b2**2)
+
+				δL = l2 - l1
+				δC = c2_prime - c1_prime
+
+				h1_prime = c1_prime == 0 ? 0 : Math.atan2(b1, a1_prime)
+				h2_prime = c2_prime == 0 ? 0 : Math.atan2(b2, a2_prime)
+
+				h1_prime += 2 * Math::PI if h1_prime < 0
+				h2_prime += 2 * Math::PI if h2_prime < 0
+
+				h1_prime *= 180 / Math::PI
+				h2_prime *= 180 / Math::PI
+				hsum_prime = h1_prime + h2_prime
+				hdiff_prime = h2_prime - h1_prime
+
+				δh_prime =
+					if (c1_prime * c2_prime == 0)
+						0
+					elsif hdiff_prime.abs <= 180
+						hdiff_prime
+					elsif hdiff_prime > 180
+						hdiff_prime - 360
+					else
+						hdiff_prime + 360
+					end
+
+				δH = 2 * Math.sqrt(c1_prime * c2_prime) * Math.sin(δh_prime * Math::PI / 180 / 2.0)
+
+				l_bar = (l1 + l2) / 2.0
+				c_bar_prime = (c1_prime + c2_prime) / 2.0
+
+				h_bar =
+					if (c1_prime * c2_prime == 0)
+						hsum_prime
+					elsif hdiff_prime.abs <= 180
+						hsum_prime / 2.0
+					elsif hsum_prime < 360
+						(hsum_prime + 360) / 2.0
+					else
+						(hsum_prime - 360) / 2.0
+					end
+
+				lsq = (l_bar - 50)**2
+				sl = 1 + (0.015 * lsq) / Math.sqrt(20 + lsq)
+				sc = 1 + 0.045 * c_bar_prime
+
+				t = 1.0
+				t -= 0.17 * Math.cos((h_bar - 30) * Math::PI / 180)
+				t += 0.24 * Math.cos(2 * h_bar * Math::PI / 180)
+				t += 0.32 * Math.cos((3 * h_bar + 6) * Math::PI / 180)
+				t -= 0.20 * Math.cos((4 * h_bar - 63) * Math::PI / 180)
+
+				sh = 1 + 0.015 * c_bar_prime * t
+
+				θ = 60 * Math.exp(-1 * ((h_bar - 275) / 25.0)**2)
+				rc = -2 * Math.sqrt(c_bar_prime**7 / (c_bar_prime**7 + 25**7))
+				rt = rc * Math.sin(θ * Math::PI / 180)
+
+				kl = 1
+				kc = 1
+				kh = 1
+				term1 = δL / (kl * sl)
+				term2 = δC / (kc * sc)
+				term3 = δH / (kh * sh)
+
+				Math.sqrt(term1**2 + term2**2 + term3**2 + rt * term2 * term3)
+			end
+		end
+
+		def cielab
+			xyz.cielab
+		end
+
 	private
 
 		def xyz
@@ -174,9 +359,23 @@ module Substance
 		end
 	end
 
+	CIELAB = Struct.new(:l, :a, :b)
+
 	class XYZ < Channels[:x, :y, :z]
 		def srgb
 			linear_srgb.srgb
+		end
+
+		def cielab
+			xn, yn, zn = [0.9504, 1.0, 1.0888]
+
+			fx = ->(t) { t > (6.0/29.0)**3 ? t**(1.0/3.0) : (1.0/3.0) * (29.0/6.0)**2 * t + 16.0/116.0 }
+
+			l = 116.0 * fx.(y/yn) - 16.0
+			a = 500.0 * (fx.(x/xn) - fx.(y/yn))
+			b = 200.0 * (fx.(y/yn) - fx.(z/zn))
+
+			CIELAB.new(l, a, b)
 		end
 
 	private
@@ -246,26 +445,22 @@ module Substance
 				end
 		end
 
-		def color(color_refs, surface_lightness, chroma_factor = nil)
+		def color(color_refs, surface_lightness)
 			base_color = color_refs[@base_name]
 			signal = surface_lightness < 50 ? 1 : -1
 			light = surface_lightness + signal * @relative_light
-			color = base_color.(light / 100.0)
-			if chroma_factor
-				color.scale_max_srgb_chroma(chroma_factor)
-			else
-				color.limit_srgb_chroma
-			end
+			base_color.call(light / 100.0).limit_srgb_chroma
 		end
 
 		def describe(color, fg:, bg:, strict: false)
 			if strict
-				final_bg, final_fg = bg, fg
+				final_bg = bg
+				final_fg = fg
 			else
-				final_fg = (fg.l - color.l).abs >= (bg.l - color.l).abs ? fg : bg
-				final_bg = (fg.l - color.l).abs < (bg.l - color.l).abs ? fg : bg
+				final_fg = (fg.lr - color.lr).abs >= (bg.lr - color.lr).abs ? fg : bg
+				final_bg = (fg.lr - color.lr).abs < (bg.lr - color.lr).abs ? fg : bg
 			end
-			spec = "#{@base_acronym}-#{format('%-3d', color.l * 100)}".then do |spec|
+			spec = "#{@base_acronym}-#{format('%-3d', color.lr * 100)}".then do |spec|
 				print(final_fg, on: color) { " #{format('%-6s', spec)}     #{color.srgb.hex} " }
 			end
 			description_1, description_2 = lines([18, 8]).to_a
@@ -295,13 +490,10 @@ module Substance
 			return to_enum(__method__, line_lengths) unless block_given?
 
 			words = @description.split(/\s+/)
-			lines_yielded = 0
 			line_lengths.size.times do |i|
 				line_length = line_lengths[i]
 				line = words.shift || ''
-				while words.any? && words.first.length <= line_length - line.size - 1
-					line << ' ' << words.shift
-				end
+				line << ' ' << words.shift while words.any? && words.first.length <= line_length - line.size - 1
 				yield line.ljust(line_length, ' ')
 			end
 		end
@@ -332,10 +524,11 @@ module Substance
 		(1..6).each do |n|
 			name = :"tier#{n}_container"
 			define_color(name) do
-				base = @swatches[name].color(@color_refs, @surface_lightness, 0.5)
+				chroma_factor = 0.5
+				base = @swatches[name].color(@color_refs, @surface_lightness).scale_max_srgb_chroma(chroma_factor)
 				signal = @surface_lightness < 50 ? -1 : 1
-				while base.srgb.wcag_contrast(on_surface_intense.srgb) < 6.5
-					base = base.(base.l + (signal * 0.01))
+				while base.srgb.wcag_contrast(on_surface.srgb) < 4.5
+					base = base.call(base.lr + (signal * 0.001)).scale_max_srgb_chroma(chroma_factor)
 				end
 				base
 			end
@@ -344,21 +537,19 @@ module Substance
 		(1..6).each do |n|
 			name = :"tier#{n}_mild"
 			define_color(name) do
-				mid_contrast_color(
-					@swatches[name].color(@color_refs, @surface_lightness, 0.7),
-					surface,
-					on_surface
-				)
+				chroma_factor = 0.8
+				base = @swatches[name].color(@color_refs, @surface_lightness).scale_max_srgb_chroma(chroma_factor)
+				mid_contrast_color(base, surface, on_surface_intense, chroma_factor:)
 			end
 		end
 
 		(1..6).each do |n|
 			name = :"tier#{n}"
 			define_color(name) do
-				base = @swatches[name].color(@color_refs, @surface_lightness, 0.85)
+				base = @swatches[name].color(@color_refs, @surface_lightness).scale_max_srgb_chroma
 				signal = @surface_lightness < 50 ? 1 : -1
-				while base.srgb.wcag_contrast(surface.srgb) < 6.5
-					base = base.(base.l + (signal * 0.01))
+				while base.srgb.wcag_contrast(surface.srgb) < 4.5
+					base = base.call(base.l + (signal * 0.001)).scale_max_srgb_chroma
 				end
 				base
 			end
@@ -367,33 +558,19 @@ module Substance
 		def outline
 			base = @swatches[:outline].color(@color_refs, @surface_lightness)
 			signal = @surface_lightness < 50 ? 1 : -1
-			while base.srgb.wcag_contrast(surface.srgb) < 3.5
-				base = base.(base.l + (signal * 0.01))
-			end
-			base
-		end
-
-		def outline_mild
-			base = @swatches[:outline_mild].color(@color_refs, @surface_lightness)
-			signal = @surface_lightness < 50 ? 1 : -1
-			while base.srgb.wcag_contrast(surface.srgb) < 2.5
-				base = base.(base.l + (signal * 0.01))
-			end
+			base = base.call(base.lr + (signal * 0.001)) while base.srgb.wcag_contrast(surface.srgb) < 3.5
 			base
 		end
 
 		def on_surface_mild
 			base = @swatches[:on_surface_mild].color(@color_refs, @surface_lightness)
 			signal = @surface_lightness < 50 ? 1 : -1
-			while base.srgb.wcag_contrast(surface.srgb) < 6.5
-				base = base.(base.l + (signal * 0.01))
-			end
+			base = base.call(base.lr + (signal * 0.01)) while base.srgb.wcag_contrast(surface.srgb) < 4.5
 			base
 		end
 
 		%i[
 			on_surface
-			on_surface_term
 			on_surface_intense
 			surface_container_lowest
 			surface
@@ -456,43 +633,48 @@ module Substance
 		alias term7_mild on_surface
 		alias term7_container on_surface_mild
 
+		alias outline_1 outline
+		alias on_surface_1 on_surface
+
 		def describe
 			@swatch_rows.map do |swatch_row|
 				swatch_row.map do |name, swatch|
-					fg, strict =
+					bg, fg, strict =
 						if name =~ /tier\d_mild/
-							[on_surface, true]
+							[surface, on_surface_intense, true]
 						elsif name =~ /tier\d_container/
-							[on_surface_intense, true]
+							[surface, on_surface, true]
+						elsif name =~ /tier\d/
+							[on_surface, surface, true]
 						else
-							[on_surface, false]
+							[surface, on_surface, false]
 						end
 					color = public_send(name)
-					swatch.describe(color, bg: surface, fg:, strict:)
+					swatch.describe(color, bg:, fg:, strict:)
 				end.reduce(&:zip).map(&:join).join("\n") + "\n"
 			end.join
 		end
 
 	private
 
-		def mid_contrast_color(base, bg, fg)
+		def mid_contrast_color(base, bg, fg, chroma_factor: nil)
 			ε = 0.01
-			attempts = 20
 			diff = base.srgb.wcag_contrast(bg.srgb) - base.srgb.wcag_contrast(fg.srgb)
 			if diff > 0
-				lo = bg.l
-				hi = base.l
+				lo = bg.lr
+				hi = base.lr
 			else
-				hi = fg.l
-				lo = base.l
+				hi = fg.lr
+				lo = base.lr
 			end
 			while diff.abs > ε
 				if diff > 0
-					hi = base.l
+					hi = base.lr
 				else
-					lo = base.l
+					lo = base.lr
 				end
-				base = base.((lo + hi) / 2.0)
+				base = base.call((lo + hi) / 2.0)
+				base = base.scale_max_srgb_chroma(chroma_factor) if chroma_factor
 				diff = base.srgb.wcag_contrast(bg.srgb) - base.srgb.wcag_contrast(fg.srgb)
 			end
 			base
@@ -553,30 +735,26 @@ module Substance
 				surface_container_highest: Swatch.new(:neutral, 'Surface Container Highest', 12)
 			}.to_a
 
-			on_surface_column = {
-				outline_mild: Swatch.new(:neutral_variant, 'Outline Mild', 30),
-				outline: Swatch.new(:neutral_variant, 'Outline', 40),
-				on_surface_mild: Swatch.new(:neutral_variant, 'On Surface Mild', 55),
-				on_surface: Swatch.new(:neutral_variant, 'On Surface', 70),
-				on_surface_term: Swatch.new(:neutral_variant, 'On Surface Term', 76),
-				on_surface_intense: Swatch.new(:neutral_variant, 'On Surface Intense', 80),
-			}.to_a
+			on_surface_row = {
+				outline: Swatch.new(:neutral_variant, 'Outline', 35),
+				on_surface_mild: Swatch.new(:neutral_variant, 'On Surface Mild', 50),
+				on_surface: Swatch.new(:neutral_variant, 'On Surface', 65),
+				on_surface_intense: Swatch.new(:neutral_variant, 'On Surface Intense', 73),
+			}
 
 			@swatch_rows = (1..6).map do |n|
-				on_surface_item_name, on_surface_item_swatch = on_surface_column[n - 1]
 				surface_item_name, surface_item_swatch = surface_column[n - 1]
 				{
 					surface_item_name => surface_item_swatch,
-					on_surface_item_name => on_surface_item_swatch,
-					"tier#{n}_container": Swatch.new(:"tier#{n}", "Tier #{n} Container", 22),
-					"tier#{n}_mild": Swatch.new(:"tier#{n}", "Tier #{n} Mild", 38),
-					"tier#{n}": Swatch.new(:"tier#{n}", "Tier #{n}", 55),
+					"tier#{n}_container": Swatch.new(:"tier#{n}", "Tier #{n} Container", 20),
+					"tier#{n}_mild": Swatch.new(:"tier#{n}", "Tier #{n} Mild", 35),
+					"tier#{n}": Swatch.new(:"tier#{n}", "Tier #{n}", 50)
 				}
-			end
+			end + [on_surface_row]
 		end
 
 		def light
-			@light ||= Palette.new(@color_refs, @swatch_rows, 90, **@roles)
+			@light ||= Palette.new(@color_refs, @swatch_rows, 92, **@roles)
 		end
 
 		def dark
