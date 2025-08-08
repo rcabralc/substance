@@ -39,7 +39,6 @@ declare-option str color_on_surface <%= color[:on_surface] %>
 declare-option str color_on_surface_intense <%= color[:on_surface_intense] %>
 declare-option str color_on_surface_mild <%= color[:on_surface_mild] %>
 declare-option str color_outline <%= color[:outline] %>
-declare-option str color_outline_mild <%= color[:outline_mild] %>
 declare-option str color_surface <%= color[:surface] %>
 declare-option str color_surface_container <%= color[:surface_container] %>
 declare-option str color_surface_container_high <%= color[:surface_container_high] %>
@@ -88,7 +87,7 @@ face global Default "%opt{color_on_surface},%opt{color_surface}"
 face global PrimarySelection "default,%opt{color_selection_container_transparent}"
 face global SecondarySelection "default,%opt{color_secondary_selection_container_transparent}"
 face global PrimaryCursor +ra
-face global SecondaryCursor "%opt{color_surface},%opt{color_outline_mild}"
+face global SecondaryCursor "%opt{color_surface},%opt{color_outline}"
 face global PrimaryCursorEol "default,%opt{color_selection}"
 face global SecondaryCursorEol "default,%opt{color_secondary_selection}"
 face global MenuForeground "%opt{color_on_surface_intense},%opt{color_selection_container}"
@@ -109,12 +108,12 @@ face global Prompt %opt{color_tier3}
 face global BufferPadding %opt{color_surface_container_lowest}
 
 # built-in highlighter faces
-face global LineNumbers "%opt{color_outline_mild},%opt{color_surface_container_lowest}"
+face global LineNumbers "%opt{color_outline},%opt{color_surface_container_lowest}"
 face global LineNumberCursor "%opt{color_selection}@LineNumbers"
 face global LineNumbersWrapped "%opt{color_surface_container_lowest},%opt{color_surface_container_lowest}+i"
 face global MatchingChar "default,%opt{color_tier4_container}+b"
-face global Whitespace "%opt{color_outline_mild}+f"
-face global WrapMarker "%opt{color_outline_mild}+f"
+face global Whitespace "%opt{color_outline}+f"
+face global WrapMarker "%opt{color_outline}+f"
 
 # other useful highlighter faces
 face global CursorLine ",%opt{color_surface_container}"
@@ -124,7 +123,7 @@ face global Search ",%opt{color_highlight_container_transparent}"
 # Tree-sitter (https://git.sr.ht/~hadronized/kak-tree-sitter)
 face global ts_attribute attribute
 face global ts_comment comment
-face global ts_conceal %opt{color_outline_mild}
+face global ts_conceal %opt{color_outline}
 face global ts_constant value
 face global ts_constant_builtin meta
 face global ts_constant_builtin_boolean meta
@@ -154,10 +153,11 @@ face global ts_markup_list list
 face global ts_markup_link link
 face global ts_markup_quote block
 face global ts_markup_raw block
-face global ts_markup_strikethrough "%opt{color_outline}+s"
+face global ts_markup_strikethrough "%opt{color_outline}+sa"
 face global ts_namespace module
 face global ts_operator operator
-face global ts_punctuation %opt{color_outline}
+face global ts_property %opt{color_on_surface}
+face global ts_punctuation "%opt{color_outline}+a"
 face global ts_punctuation_delimiter keyword
 face global ts_punctuation_special meta
 face global ts_special meta
@@ -183,4 +183,3 @@ face global OnSurface %opt{color_on_surface}
 face global OnSurfaceIntense %opt{color_on_surface_intense}
 face global OnSurfaceMild %opt{color_on_surface_mild}
 face global Outline %opt{color_outline}
-face global OutlineMild %opt{color_outline_mild}
