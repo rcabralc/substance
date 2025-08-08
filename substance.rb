@@ -17,9 +17,9 @@ module Substance
 	]
 
 	XYZtoLinearSRGB = Matrix[
-		[ 3.2409699419045226,  -1.537383177570094,   -0.4986107602930034 ],
-		[-0.9692436362808796,   1.8759675015077202,   0.04155505740717559],
-		[ 0.05563007969699366, -0.20397695888897652,  1.0569715142428786 ],
+		[ 3.2409699419045226,  -1.537383177570094,  -0.4986107602930034 ],
+		[-0.9692436362808796,   1.8759675015077202,  0.04155505740717559],
+		[ 0.05563007969699366, -0.20397695888897652, 1.0569715142428786 ],
 	]
 
 	Channels = -> *channels, other: [] do
@@ -37,7 +37,7 @@ module Substance
 			end
 
 			define_method(:[]) do |index|
-    			to_a[index]
+				to_a[index]
 			end
 
 			define_method(:to_a) do
@@ -52,7 +52,7 @@ module Substance
 
 	class OKLch < Channels[:l, :c, :h]
 		def initialize(l, c, h)
-			h = h % 360
+			h %= 360
 			super
 		end
 
@@ -170,7 +170,7 @@ module Substance
 
 		def xyz
 			lms = OKLabtoLMS * Vector[l, a, b]
-			XYZ.new(*(LMStoXYZ * lms.map { |c| c ** 3 }))
+			XYZ.new(*(LMStoXYZ * lms.map { |c| c**3 }))
 		end
 	end
 
@@ -208,7 +208,7 @@ module Substance
 		end
 
 		def hex
-			@hex ||= format("#%02x%02x%02x", *octets)
+			@hex ||= format('#%02x%02x%02x', *octets)
 		end
 
 		def octets
@@ -510,14 +510,18 @@ module Substance
 			             term4: :link, term5: :link_visited, term6: :active)
 			tier_refs = %i[tier1 tier2 tier3 tier4 tier5 tier6]
 			raise "link color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(link)
-			raise "link_visited color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(link_visited)
+			if !tier_refs.include?(link_visited)
+				raise "link_visited color must correspond to one of: #{tier_refs.join(', ')}"
+			end
 			raise "error color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(error)
 			raise "warning color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(warning)
 			raise "positive color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(positive)
 			raise "active color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(active)
 			raise "highlight color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(highlight)
 			raise "selection color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(selection)
-			raise "secondary selection color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(secondary_selection)
+			if !tier_refs.include?(secondary_selection)
+				raise "secondary_selection color must correspond to one of: #{tier_refs.join(', ')}"
+			end
 			raise "attribute color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(attribute)
 			raise "keyword color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(keyword)
 			raise "type color must correspond to one of: #{tier_refs.join(', ')}" if !tier_refs.include?(type)
@@ -546,7 +550,7 @@ module Substance
 				surface_container_low: Swatch.new(:neutral, 'Surface Container Low', 3),
 				surface_container: Swatch.new(:neutral, 'Surface Container', 6),
 				surface_container_high: Swatch.new(:neutral, 'Surface Container High', 9),
-				surface_container_highest: Swatch.new(:neutral, 'Surface Container Highest', 12),
+				surface_container_highest: Swatch.new(:neutral, 'Surface Container Highest', 12)
 			}.to_a
 
 			on_surface_column = {
