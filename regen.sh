@@ -34,8 +34,7 @@ regen_bat () {
 }
 
 regen_foot () {
-	erb -r ./"$1.rb" "name=$2" variant=light ./foot.ini.erb > ~/.config/foot/"$1-light.ini"
-	erb -r ./"$1.rb" "name=$2" variant=dark ./foot.ini.erb > ~/.config/foot/"$1-dark.ini"
+	erb -r ./"$1.rb" "name=$2" ./foot.ini.erb > ~/.config/foot/"$1.ini"
 }
 
 regen_ghostty () {
