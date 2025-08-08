@@ -45,7 +45,7 @@ module Substance
 			end
 
 			define_method(:to_s) do
-				"#{self.class.name}(#{Vector[*to_a]})"
+				"#{self.class.name}(#{Vector[*self]})"
 			end
 		end
 	end
