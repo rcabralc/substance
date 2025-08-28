@@ -99,7 +99,7 @@ face global DiagnosticError "%opt{color_error}+b"
 face global DiagnosticHint default
 face global DiagnosticInfo %opt{color_on_surface_mild}
 face global DiagnosticWarning %opt{color_warning}
-face global StatusLine "%opt{color_on_surface},%opt{color_surface_container_lowest}"
+face global StatusLine "%opt{color_on_surface},%opt{color_surface}"
 face global StatusLineMode %opt{color_tier3}
 face global StatusLineInfo %opt{color_tier2}
 face global StatusLineValue %opt{color_tier1}
@@ -108,9 +108,9 @@ face global Prompt %opt{color_tier3}
 face global BufferPadding %opt{color_surface_container_lowest}
 
 # built-in highlighter faces
-face global LineNumbers "%opt{color_outline},%opt{color_surface_container_lowest}"
-face global LineNumberCursor "%opt{color_selection}@LineNumbers"
-face global LineNumbersWrapped "%opt{color_surface_container_lowest},%opt{color_surface_container_lowest}+i"
+face global LineNumbers "%opt{color_outline}"
+face global LineNumberCursor "%opt{color_selection},%opt{color_surface_container_lowest}"
+face global LineNumbersWrapped "%opt{color_surface_container_lowest}"
 face global MatchingChar "default,%opt{color_tier4_container}+b"
 face global Whitespace "%opt{color_outline}+f"
 face global WrapMarker "%opt{color_outline}+f"
