@@ -6,7 +6,7 @@
 	scheme = Substance.const_get(name)
 	palette = scheme.public_send(variant)
 %><!--
-Plasma <%= name %> <%= variant %> color scheme<% if scheme.respond_to?(:seed) %>
+Sublime/bat <%= name %> <%= variant %> color scheme<% if scheme.respond_to?(:seed) %>
 SUBSTANCE_DYNAMIC_SEED=<%= scheme.seed %><% end %>
 -->
 
@@ -23,10 +23,12 @@ SUBSTANCE_DYNAMIC_SEED=<%= scheme.seed %><% end %>
 					<string><%= palette.surface.srgb.hex %></string>
 					<key>caret</key>
 					<string><%= palette.on_surface.srgb.hex %></string>
+					<key>block-caret</key>
+					<string><%= palette.outline.srgb.hex %></string>
 					<key>foreground</key>
 					<string><%= palette.on_surface.srgb.hex %></string>
 					<key>invisibles</key>
-					<string><%= palette.outline.srgb.hex %></string>
+					<string><%= palette.surface_container_highest.srgb.hex %></string>
 					<key>lineHighlight</key>
 					<string><%= palette.surface_container.srgb.hex %></string>
 					<key>selection</key>
@@ -38,7 +40,7 @@ SUBSTANCE_DYNAMIC_SEED=<%= scheme.seed %><% end %>
 					<key>findHighlight</key>
 					<string><%= palette.highlight_container.srgb.hex %></string>
 					<key>findHighlightForeground</key>
-					<string><%= palette.highlight.srgb.hex %></string>
+					<string><%= palette.on_surface.srgb.hex %></string>
 					<key>gutterForeground</key>
 					<string><%= palette.outline.srgb.hex %></string>
 				</dict>
@@ -366,7 +368,7 @@ SUBSTANCE_DYNAMIC_SEED=<%= scheme.seed %><% end %>
 			</dict>
 		</array>
 		<key>uuid</key>
-		<string>88709F02-801B-48C3-A87E-2714623691C4</string>
+		<string>uuid</string>
 		<key>colorSpaceName</key>
 		<string>sRGB</string>
 	</dict>
