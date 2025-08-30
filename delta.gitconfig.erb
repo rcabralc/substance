@@ -1,0 +1,23 @@
+<%
+	require_relative "#{name.downcase}"
+	scheme = Substance.const_get(name)
+	palette = scheme.public_send(variant)
+	full_lowercased_name = "#{name.downcase}-#{variant.downcase}"
+%>; Sublime/bat <%= name %> <%= variant %> color scheme<% if scheme.respond_to?(:seed) %>
+; SUBSTANCE_DYNAMIC_SEED=<%= scheme.seed %><% end %>
+[delta "<%= full_lowercased_name %>"]
+	minus-style                   = syntax "<%= palette.error_container.srgb.hex %>"
+	minus-non-emph-style          = syntax "<%= palette.error_container.srgb.hex %>"
+	minus-emph-style              = "<%= palette.on_surface_intense.srgb.hex %>" "<%= palette.error_mild.srgb.hex %>"
+	minus-empty-line-marker-style = normal "<%= palette.error_container.srgb.hex %>"
+	plus-style                    = syntax "<%= palette.positive_container.srgb.hex %>"
+	plus-non-emph-style           = syntax "<%= palette.positive_container.srgb.hex %>"
+	plus-emph-style               = "<%= palette.on_surface_intense.srgb.hex %>" "<%= palette.positive_mild.srgb.hex %>"
+	plus-empty-line-marker-style  = normal "<%= palette.positive_container.srgb.hex %>"
+	blame-palette                 = "<%= palette.surface.srgb.hex %>" "<%= palette.surface_container_low.srgb.hex %>" "<%= palette.surface_container.srgb.hex %>" "<%= palette.surface_container_high.srgb.hex %>" "<%= palette.surface_container_highest.srgb.hex %>"
+	line-numbers-left-style       = "<%= palette.outline.srgb.hex %>"
+	line-numbers-right-style      = "<%= palette.outline.srgb.hex %>"
+	line-numbers-zero-style       = "<%= palette.outline.srgb.hex %>"
+	line-numbers-minus-style      = red
+	line-numbers-plus-style       = green
+	syntax-theme                  = <%= full_lowercased_name %>

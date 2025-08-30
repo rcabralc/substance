@@ -6,6 +6,7 @@ usage () {
 	echo "Usage:"
 	echo "  regen [--alacritty]"
 	echo "        [--bat]"
+	echo "        [--delta]"
 	echo "        [--foot]"
 	echo "        [--ghostty]"
 	echo "        [--kakoune]"
@@ -31,6 +32,11 @@ regen_bat () {
 	erb -r ./"$1.rb" "name=$2" variant=light ./sublime.tmTheme.erb > ~/.config/bat/themes/"$1-light.tmTheme"
 	erb -r ./"$1.rb" "name=$2" variant=dark ./sublime.tmTheme.erb > ~/.config/bat/themes/"$1-dark.tmTheme"
 	bat cache --build > /dev/null || true
+}
+
+regen_delta () {
+	erb -r ./"$1.rb" "name=$2" variant=light ./delta.gitconfig.erb > ~/.config/git/"$1-light.gitconfig"
+	erb -r ./"$1.rb" "name=$2" variant=dark ./delta.gitconfig.erb > ~/.config/git/"$1-dark.gitconfig"
 }
 
 regen_foot () {
@@ -75,6 +81,7 @@ regen_vt () {
 
 all_per_scheme_items=(alacritty
                       bat
+                      delta
                       foot
                       ghostty
                       kakoune
@@ -99,6 +106,9 @@ while [ "$#" -gt 0 ]; do
 			;;
 		--bat)
 			per_scheme_includes+=(bat)
+			;;
+		--delta)
+			per_scheme_includes+=(delta)
 			;;
 		--foot)
 			per_scheme_includes+=(foot)
