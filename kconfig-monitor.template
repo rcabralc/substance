@@ -8,10 +8,10 @@ change_bat_scheme () {
 }
 
 change_delta_scheme () {
-	echo "[include]" > ~/.config/git/theme.gitconfig
-	echo "  path = ~/.config/git/$1.gitconfig" >> ~/.config/git/theme.gitconfig
-	echo '[delta "theme"]' >> ~/.config/git/theme.gitconfig
-	echo "  features = $1" >> ~/.config/git/theme.gitconfig
+	[ -f  ~/.config/git/$1.gitconfig ] || return
+
+	cp ~/.config/git/$1.gitconfig ~/.config/git/monitored-theme.gitconfig
+	sed -i -E "s/^\[delta \"$1\"/[delta \"monitored-theme\"/" ~/.config/git/monitored-theme.gitconfig
 }
 
 change_foot_scheme () {
