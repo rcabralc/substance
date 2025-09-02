@@ -3,7 +3,7 @@
 	scheme = Substance.const_get(name)
 	palette = scheme.public_send(variant)
 	full_lowercased_name = "#{name.downcase}-#{variant.downcase}"
-%>; Sublime/bat <%= name %> <%= variant %> color scheme<% if scheme.respond_to?(:seed) %>
+%>; Delta <%= name %> <%= variant %> color scheme<% if scheme.respond_to?(:seed) %>
 ; SUBSTANCE_DYNAMIC_SEED=<%= scheme.seed %><% end %>
 [delta "<%= full_lowercased_name %>"]
 	minus-style                   = syntax "<%= palette.error_container.srgb.hex %>"
